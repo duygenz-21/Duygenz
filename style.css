@@ -329,18 +329,56 @@ header {
 }
 .ai-bubble th { background: #1e293b; color: #38bdf8; }
 
-/* 🔥 CẤP CỨU MOBILE: Ép chiều rộng khung code nhỏ hơn màn hình 🔥 */
+/* --- MOBILE RESPONSIVE FIXES (ĐÃ CĂN CHỈNH LẠI) --- */
 @media (max-width: 768px) {
-   .ai-bubble pre,
-   .ai-bubble table {
-       /* Tính toán: 100% màn hình trừ đi lề trái phải (khoảng 50px) */
-       /* Nếu không có dòng này, khung code sẽ đẩy khung chat rộng ra => Không scroll được */
-       max-width: calc(100vw - 60px) !important; 
-       
-       /* Đảm bảo thanh cuộn hiện ra */
-       display: block;
+   .messages-area { 
+       /* 👇 Tăng khoảng cách lề: Trên/Dưới 10px, Trái/Phải 16px */
+       padding: 10px 16px !important; 
+   } 
+
+   .user-bubble { 
+       max-width: 85%; /* Giảm chiều rộng tin nhắn người dùng một chút */
+       padding: 0.8rem 1rem; 
+       font-size: 15px;
+   }
+   
+   /* 👇 Thêm cái này để khung AI không dính sát lề phải */
+   .ai-card {
+       margin-right: 5px; 
+       border-radius: 10px;
+   }
+
+   .ai-bubble { 
+       padding: 1rem; /* Tăng padding bên trong bong bóng AI */
+       font-size: 15px; 
+   }
+
+   .ai-bubble pre { 
+       font-size: 13px; 
+       padding: 1em;
+       border-radius: 8px; /* Bo tròn khung code cho mềm mại */
+   }
+   
+   .input-area { 
+       padding: 0.8rem; /* Tăng đệm cho khung nhập liệu dưới cùng */
+   }
+   
+   /* Các phần tinh chỉnh nút bấm giữ nguyên */
+   .squad-mode-toggle { font-size: 10px; }
+   .toggle-switch { width: 28px; height: 16px; }
+   .toggle-switch::after { width: 12px; height: 12px; }
+   .squad-mode-toggle.active .toggle-switch::after { transform: translateX(12px); }
+
+   #filePreview span { 
+       max-width: 100px;
+       overflow: hidden; 
+       text-overflow: ellipsis; 
+       white-space: nowrap; 
+       display: inline-block; 
+       vertical-align: bottom;
    }
 }
+
 
 /* Links */
 .ai-bubble a { color: #38bdf8; text-decoration: none; border-bottom: 1px dotted #38bdf8; }
