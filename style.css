@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&family=Outfit:wght@500;700;900&display=swap');
 
@@ -441,6 +441,7 @@ textarea {
    /* File preview gọn hơn */
    #filePreview span { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
 }
+
 /* --- DEBATE MODE STYLES --- */
 .squad-mode-toggle.debate-active .toggle-switch { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
 .squad-mode-toggle.debate-active .toggle-switch::after { transform: translateX(14px); background: #fff; }
@@ -648,7 +649,7 @@ textarea {
    margin-top: 30px;
    position: relative;
    overflow: hidden;
-   animation: slideUp Referee 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+   animation: slideUpReferee 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Hiệu ứng quét sáng bóng */
