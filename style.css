@@ -6,15 +6,16 @@
 
 body {
    background-color: #0b1121;
-   margin: 0; padding: 0;
+   margin: 0;
+   padding: 0;
    font-family: 'Inter', sans-serif;
    color: #cbd5e1;
    font-size: 15px;
    /* KHÓA CUỘN TRANG WEB - CHỈ CUỘN KHUNG CHAT */
    overflow: hidden; 
-   position: fixed; 
+   /* ĐÃ XÓA: position: fixed; (Nguyên nhân gây lỗi đơ scroll) */
    width: 100%; 
-   height: 100%;
+   height: 100dvh; /* Fix chiều cao thực tế trên Mobile */
 }
 
 .chat-container {
@@ -85,14 +86,17 @@ header {
 /* KHUNG CHAT */
 .messages-area {
    flex: 1;
+   min-height: 0; /* 👈 QUAN TRỌNG: Thêm dòng này để kích hoạt scroll */
    overflow-y: auto;
    padding: 1rem;
    width: 100%;
-   scroll-behavior: smooth; /* Tắt smooth scroll native để JS xử lý mượt hơn khi stream */
+   scroll-behavior: smooth;
+   /* Tắt smooth scroll native để JS xử lý mượt hơn khi stream */
    -webkit-overflow-scrolling: touch;
    padding-bottom: 20px;
-   overscroll-behavior-y: contain; /* 👈 Giữ scroll nằm gọn trong khung chat, không lan ra body */
+   overscroll-behavior-y: contain; /* Giữ scroll nằm gọn trong khung chat */
 }
+
 
 .messages-area::-webkit-scrollbar { width: 4px; }
 .messages-area::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
