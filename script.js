@@ -453,40 +453,46 @@ async function validateLicenseKey(key) {
         const now = new Date();
         const expiresAt = new Date(license.expires_at);
         
-        // --- CÁC BƯỚC KIỂM TRA ---
+        // --- CÁC BƯỚC KIỂM TRA BẢO MẬT ---
 
         // Check 1: Hết hạn ngày
         if (expiresAt < now) return { valid: false, message: 'License đã hết hạn ngày sử dụng!' };
 
-        // Check 2: License bị khóa
-        if (!license.is_active) return { valid: false, message: 'License đã bị vô hiệu hóa bởi Admin!' };
+        // Check 2: License bị khóa bởi Admin
+        if (!license.is_active) return { valid: false, message: 'License đã bị vô hiệu hóa!' };
 
         // Check 3: Hết lượt chat (Quota)
         if (license.max_usage_count !== null && license.usage_count >= license.max_usage_count) {
             return { valid: false, message: 'Gói này đã dùng hết tổng số tin nhắn cho phép!' };
         }
 
-        // --- CẬP NHẬT USAGE LÊN SERVER ---
-        // [FIXED] Đã xóa dòng chữ tiếng Việt thừa gây lỗi ở đây
+        // --- CẬP NHẬT USAGE QUA HÀM RPC (AN TOÀN) ---
         const usageToAdd = securityState.currentGap > 0 ? securityState.currentGap : 1;
-        const newUsage = (license.usage_count || 0) + usageToAdd;
-
-        // Gọi API Patch để update số lượt dùng
-        fetch(`${LICENSE_CONFIG.SUPABASE_URL}/rest/v1/licenses?license_key=eq.${encodeURIComponent(key)}`, {
-            method: 'PATCH',
+        
+        // Gọi hàm RPC 'increment_usage' (Đường dẫn /rpc/increment_usage)
+        fetch(`${LICENSE_CONFIG.SUPABASE_URL}/rest/v1/rpc/increment_usage`, {
+            method: 'POST',
             headers: {
                 'apikey': LICENSE_CONFIG.SUPABASE_KEY,
                 'Authorization': `Bearer ${LICENSE_CONFIG.SUPABASE_KEY}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ usage_count: newUsage })
-        }).catch(err => console.warn("Lỗi update usage:", err));
+            // Truyền tham số khớp với SQL: p_key và p_amount
+            body: JSON.stringify({ 
+                p_key: key, 
+                p_amount: usageToAdd 
+            })
+        }).catch(err => console.warn("Lỗi update RPC:", err));
+        
+        // Tính toán số hiển thị giả lập (để UI nhảy số ngay cho mượt)
+        const newUsageDisplay = (license.usage_count || 0) + usageToAdd;
 
         return { 
             valid: true, 
             expiresAt: license.expires_at,
-            daysLeft: Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24))
+            daysLeft: Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24)),
+            usageCount: newUsageDisplay, 
+            maxUsage: license.max_usage_count 
         };
 
     } catch (error) {
@@ -495,25 +501,38 @@ async function validateLicenseKey(key) {
     }
 }
 
-
 function checkFeaturePermission(feature) {
+    // Reset ngày mới nếu cần
     checkAndResetDailyUsage();
     
+    // 1. KIỂM TRA LICENSE (VIP)
     const licenseKey = localStorage.getItem('license_key');
     if (licenseKey) {
         const licenseData = JSON.parse(localStorage.getItem('license_data') || '{}');
         const now = new Date();
         const expiresAt = new Date(licenseData.expiresAt);
-        
+
+        // Check thời hạn
         if (expiresAt > now) {
+            // Check Quota (Số lượng tin nhắn giới hạn)
+            if (licenseData.maxUsage !== null && licenseData.usageCount >= licenseData.maxUsage) {
+                return { 
+                    allowed: false, 
+                    type: 'license', 
+                    message: `🚫 HẾT QUOTA!\nLicense của bạn đã dùng hết ${licenseData.usageCount}/${licenseData.maxUsage} lượt.\nVui lòng mua thêm gói mới.` 
+                };
+            }
+            // Nếu còn hạn và còn lượt -> Cho phép
             return { allowed: true, type: 'license', daysLeft: licenseData.daysLeft };
         } else {
+            // Nếu hết hạn -> Xóa key và đá về Free
             localStorage.removeItem('license_key');
             localStorage.removeItem('license_data');
-            alert('⚠️ License của bạn đã hết hạn. Hệ thống sẽ chuyển về chế độ Free.');
+            alert('⚠️ License của bạn đã hết hạn ngày sử dụng. Hệ thống sẽ chuyển về chế độ Free.');
         }
     }
     
+    // 2. KIỂM TRA CHẾ ĐỘ FREE (NẾU KHÔNG CÓ LICENSE)
     const limits = {
         'chat': { max: LICENSE_CONFIG.FREE_CHAT_LIMIT, usedKey: 'freeChatUsed', name: 'Chat thường' },
         'debate': { max: LICENSE_CONFIG.FREE_FEATURE_LIMIT, usedKey: 'freeDebateUsed', name: 'Debate Mode' },
@@ -523,8 +542,9 @@ function checkFeaturePermission(feature) {
     };
     
     const limit = limits[feature];
-    if (!limit) return { allowed: true, type: 'free' }; 
+    if (!limit) return { allowed: true, type: 'free' };
     
+    // Nếu dùng quá giới hạn Free
     if (usageData[limit.usedKey] >= limit.max) {
         return { 
             allowed: false, 
@@ -533,15 +553,18 @@ function checkFeaturePermission(feature) {
         };
     }
     
+    // Cộng lượt dùng Free và lưu lại
     usageData[limit.usedKey]++;
     localStorage.setItem(limit.usedKey, usageData[limit.usedKey].toString());
-    syncUsageToDB();    
+    syncUsageToDB();
+    
     return { 
         allowed: true, 
         type: 'free', 
         remaining: limit.max - usageData[limit.usedKey]
     };
 }
+
 
 // UI License Functions
 function addLicenseUI() {
