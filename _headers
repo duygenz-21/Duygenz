@@ -1,7 +1,0 @@
-/*
-  Access-Control-Allow-Origin: https://llmgenz.blogspot.com
-  X-Frame-Options: ALLOW-FROM https://llmgenz.blogspot.com
-/*
-  Access-Control-Allow-Origin: *
-  Access-Control-Allow-Methods: GET, OPTIONS
-  Access-Control-Allow-Headers: Content-Type
