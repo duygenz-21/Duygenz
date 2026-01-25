@@ -136,6 +136,15 @@
                 <div class="text-[10px] text-slate-500">Để trống sẽ dùng Openrouter. Nhập URL nếu dùng Local AI (Ollama) hoặc Enterprise.</div>
             </div>
 
+            <div class="mb-4 p-3 border border-yellow-500/30 bg-yellow-900/10 rounded-lg">
+                <label class="text-xs text-yellow-400 font-bold block mb-1">🔑 LICENSE KEY (Để mở khoá)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="licenseKeyInput" class="setting-input flex-1" placeholder="Nhập Key của bạn..." style="margin-bottom:0">
+                    <button onclick="verifyLicenseKey()" class="bg-yellow-600 text-white px-3 rounded text-xs font-bold hover:bg-yellow-500 whitespace-nowrap">
+                        CHECK
+                    </button>
+                </div>
+                
             <div class="mb-4">
                 <label class="text-xs text-slate-400 font-bold block mb-1">API KEY</label>
                 <input type="password" id="apiKeyInput" class="setting-input" placeholder="sk-...">
