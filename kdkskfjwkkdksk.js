@@ -1,6 +1,6 @@
 // --- 1. CẤU HÌNH SUPABASE & GIỚI HẠN ---
-const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co'; // Thay URL của bạn
-const SUPABASE_KEY = 'YOUR_ANON_KEY';                // Thay Key của bạn
+const SUPABASE_URL = 'https://uqchbponkvxkbdkpkgub.supabase.co'; // Thay URL của bạn
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxY2hicG9ua3Z4a2Jka3BrZ3ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIxMDYsImV4cCI6MjA4NDgzODEwNn0.9xkQlWLymaxd3pndmVUr5TGWdJYwT7lIXM993QKtF3Q';                // Thay Key của bạn
 const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 const LIMITS = { FREE_CHAT: 10, FREE_PREMIUM: 2 }; // Giới hạn 10 chat, 2 tính năng cao cấp
