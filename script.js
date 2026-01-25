@@ -20,6 +20,7 @@ let usageData = {
     freeVisionUsed: parseInt(localStorage.getItem('free_vision_used') || '0'),
     freeSquadUsed: parseInt(localStorage.getItem('free_squad_used') || '0'),
     lastResetDate: localStorage.getItem('last_reset_date') || new Date().toDateString()
+    let currentSessionId = 'session_' + new Date().getTime();
 };
   
 // --- HÀM LOGIC LICENSE ---
@@ -48,9 +49,11 @@ async function saveSmartState() {
     const now = new Date().getTime(); // Lấy thời gian dạng số (timestamp)
     
     const chatData = {
-        history: chatHistory,           // Mảng ngữ cảnh cho AI
-        html: messagesArea.innerHTML,   // Giao diện hiển thị
-        lastActive: now                 // Dấu mốc thời gian
+        id: currentSessionId,           // <--- QUAN TRỌNG: ID riêng
+        title: firstUserMsg,            // Tiêu đề để hiện trong list
+        history: chatHistory,
+        html: messagesArea.innerHTML,
+        lastActive: now
     };
     
     await dbPut(DB_CONFIG.STORES.CHAT, 'current_session', chatData);
@@ -1595,6 +1598,124 @@ const DB_CONFIG = {
     return tx.complete;
  }
 
- 
+   /**
+ * ==========================================================================================
+ * 📜 MODULE: HISTORY UI MANAGER
+ * ==========================================================================================
+ */
+
+// 1. Hàm Bật/Tắt Lịch sử & Load dữ liệu
+async function toggleHistoryPanel() {
+    const panel = document.getElementById('historyPanel'); // ⚠️ Thay ID panel của sếp vào đây
+    const listContainer = document.getElementById('historyList'); // ⚠️ Thay ID thẻ chứa list vào đây
+    
+    if (!panel || !listContainer) return console.error("Thiếu ID HTML History!");
+
+    // Toggle class để hiện/ẩn (Sếp tự style CSS class 'active' hoặc 'hidden' nhé)
+    panel.classList.toggle('active'); 
+
+    // Nếu đang mở thì mới load dữ liệu
+    if (panel.classList.contains('active')) {
+        listContainer.innerHTML = '<div class="text-center text-slate-500"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+        await renderHistoryList(listContainer);
+    }
+}
+
+// 2. Hàm Render danh sách từ IndexedDB
+async function renderHistoryList(container) {
+    const db = await openDB();
+    const tx = db.transaction(DB_CONFIG.STORES.CHAT, 'readonly');
+    const store = tx.objectStore(DB_CONFIG.STORES.CHAT);
+    const request = store.getAll(); // Lấy tất cả session
+
+    request.onsuccess = () => {
+        const sessions = request.result;
+        container.innerHTML = ''; // Xóa loading
+
+        // Sắp xếp: Mới nhất lên đầu
+        sessions.sort((a, b) => b.lastActive - a.lastActive);
+
+        if (sessions.length === 0) {
+            container.innerHTML = '<div class="text-xs text-slate-500 text-center p-2">Trống trơn...</div>';
+            return;
+        }
+
+        sessions.forEach(session => {
+            // Tính thời gian (VD: 2 giờ trước)
+            const dateStr = new Date(session.lastActive).toLocaleString('vi-VN');
+            const isActive = session.id === currentSessionId ? 'border-green-500 bg-slate-800' : 'border-slate-700';
+
+            // Tạo HTML cho từng item (Sếp có thể sửa style HTML ở đây cho hợp gu)
+            const itemHTML = `
+                <div class="history-item p-3 mb-2 rounded border ${isActive} hover:bg-slate-700 cursor-pointer transition-all relative group" 
+                     onclick="loadSession('${session.id}')">
+                    
+                    <div class="font-bold text-sm text-slate-200 truncate pr-6">${session.title}</div>
+                    <div class="text-[10px] text-slate-400 mt-1"><i class="far fa-clock"></i> ${dateStr}</div>
+                    
+                    <button onclick="deleteSession('${session.id}', event)" 
+                            class="absolute top-2 right-2 text-red-400 opacity-0 group-hover:opacity-100 hover:text-red-300">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', itemHTML);
+        });
+    };
+}
+
+// 3. Hàm Load lại một cuộc trò chuyện cũ
+async function loadSession(sessionId) {
+    if (sessionId === currentSessionId) return; // Đang xem rồi thì thôi
+
+    const session = await dbGet(DB_CONFIG.STORES.CHAT, sessionId);
+    if (session) {
+        // Cập nhật biến toàn cục
+        currentSessionId = session.id;
+        chatHistory = session.history;
+        messagesArea.innerHTML = session.html;
+        
+        // Scroll và gắn lại sự kiện
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+        if(typeof attachRunButtons === 'function') attachRunButtons();
+
+        // Đóng panel history lại cho gọn
+        document.getElementById('historyPanel').classList.remove('active');
+        
+        console.log(`📂 Đã mở lại: ${session.title}`);
+    }
+}
+
+// 4. Hàm Xóa thủ công một session
+async function deleteSession(sessionId, event) {
+    event.stopPropagation(); // Chặn sự kiện click vào item cha
+    if(!confirm("Xóa vĩnh viễn cuộc trò chuyện này?")) return;
+
+    await dbDelete(DB_CONFIG.STORES.CHAT, sessionId);
+    
+    // Nếu xóa đúng cái đang dùng thì reset màn hình
+    if (sessionId === currentSessionId) {
+        messagesArea.innerHTML = WELCOME_HTML;
+        chatHistory = [{ role: "system", content: config.systemPrompt }];
+        // Tạo ID mới để tránh lưu đè lại vào cái vừa xóa
+        currentSessionId = 'session_' + new Date().getTime();
+    }
+    
+    // Reload lại list
+    const listContainer = document.getElementById('historyList');
+    renderHistoryList(listContainer);
+}
+
+// 5. Hàm Tạo đoạn chat mới (Nút "New Chat")
+function startNewChat() {
+    // Chỉ cần reset biến và tạo ID mới, session cũ đã được auto-save trong DB rồi
+    currentSessionId = 'session_' + new Date().getTime();
+    chatHistory = [{ role: "system", content: config.systemPrompt }];
+    messagesArea.innerHTML = WELCOME_HTML;
+    
+    // Ẩn panel history nếu đang mở
+    document.getElementById('historyPanel')?.classList.remove('active');
+}
+
  settingsModal.addEventListener('click', (e) => { if(e.target===settingsModal) closeSettings(); });
 
