@@ -201,7 +201,7 @@ function checkFeaturePermission(feature) {
     // Tăng lượt dùng và lưu lại
     usageData[limit.usedKey]++;
     localStorage.setItem(limit.usedKey, usageData[limit.usedKey].toString());
-    
+       syncUsageToDB();    
     return { 
         allowed: true, 
         type: 'free', 
@@ -284,6 +284,7 @@ async function handleActivateLicense() {
     if (result.valid) {
         localStorage.setItem('license_key', key);
         localStorage.setItem('license_data', JSON.stringify({ expiresAt: result.expiresAt, daysLeft: result.daysLeft }));
+         await saveLicenseSecurely(key, { expiresAt: result.expiresAt, daysLeft: result.daysLeft });
         alert(`✅ Kích hoạt thành công!\nCòn lại: ${result.daysLeft} ngày.`);
         updateLicenseStatusDisplay();
         renderHeaderStatus(); // Update header badge
