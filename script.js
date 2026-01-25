@@ -1723,4 +1723,3 @@ initChat();
     tx.objectStore(storeName).delete(key);
     return tx.complete;
  }
-settingsModal.addEventListener('click', (e) => { if(e.target===settingsModal) closeSettings(); });
