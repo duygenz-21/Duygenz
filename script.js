@@ -1,53 +1,3 @@
-// --- 1. CẤU HÌNH SUPABASE & GIỚI HẠN ---
-const SUPABASE_URL = 'https://uqchbponkvxkbdkpkgub.supabase.co'; // Thay URL của bạn
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxY2hicG9ua3Z4a2Jka3BrZ3ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIxMDYsImV4cCI6MjA4NDgzODEwNn0.9xkQlWLymaxd3pndmVUr5TGWdJYwT7lIXM993QKtF3Q';                // Thay Key của bạn
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-
-const LIMITS = { FREE_CHAT: 10, FREE_PREMIUM: 2 }; // Giới hạn 10 chat, 2 tính năng cao cấp
-let isPro = false; // Mặc định là Free
-
-// Tự động kiểm tra Key khi vào web (nếu đã lưu trước đó)
-(async function autoCheckLicense() {
-    const savedKey = localStorage.getItem('user_license_key');
-    if (savedKey) await verifyKey(savedKey, false);
-})();
-
-// Hàm xác thực Key (Gọi khi nhập key hoặc reload trang)
-async function verifyKey(key, showUi = true) {
-    if (!supabase) return;
-    const { data } = await supabase.from('license_keys').select('*').eq('key_code', key).single();
-    
-    // Check nếu có key và hạn sử dụng > hiện tại
-    if (data && new Date(data.expires_at) > new Date()) {
-        isPro = true;
-        localStorage.setItem('user_license_key', key);
-        if(showUi) alert(`✅ Kích hoạt VIP thành công! Hạn: ${new Date(data.expires_at).toLocaleDateString()}`);
-        document.getElementById('licenseBadge').innerText = "PRO VIP"; // (Nếu có tạo badge bên HTML)
-    } else {
-        if(showUi) alert("❌ Key sai hoặc đã hết hạn!");
-        localStorage.removeItem('user_license_key');
-        isPro = false;
-    }
-}
-
-// Hàm kiểm tra giới hạn trước khi cho dùng
-function checkAccess(type) { // type = 'chat' hoặc 'premium'
-    if (isPro) return true; // Có key thì dùng thoải mái
-
-    const storageKey = `usage_${type}`;
-    let count = parseInt(localStorage.getItem(storageKey) || '0');
-    const limit = type === 'chat' ? LIMITS.FREE_CHAT : LIMITS.FREE_PREMIUM;
-
-    if (count < limit) {
-        localStorage.setItem(storageKey, count + 1);
-        return true;
-    } else {
-        alert(`⛔ HẾT LƯỢT DÙNG THỬ!\nBạn đã hết ${limit} lượt ${type}. Vui lòng nhập Key để tiếp tục.`);
-        openSettings(); // Mở cài đặt để nhập key
-        return false;
-    }
-}
-
 ﻿// --- 🛠️ DYNAMIC RESOURCE MANAGER (Lazy Load) ---
 // Danh sách "Thợ" chỉ gọi khi cần, không nuôi tốn cơm
 const RESOURCES = {
@@ -290,9 +240,6 @@ async function sendMessage() {
 let text = userInput.value.trim();
 if (!text && !currentFileContent && pendingVisionImages.length === 0) return;
 
-const type = (config.isSquadMode || window.isDebateMode || window.isSynthesisMode) ? 'premium' : 'chat';
-    if (!checkAccess(type)) return;
-
 // 🌟 ĐIỀU HƯỚNG TỰ ĐỘNG: Nếu đang bật Debate thì bẻ lái
 if (window.isDebateMode) {
 startDebateSystem(text);
@@ -517,8 +464,7 @@ function closeSettings() { settingsModal.classList.remove('active'); }
 
 // --- UTILS ---
 function stopGeneration() { abortControllers.forEach(c => c.abort()); abortControllers = []; }
-function toggleSquadMode() {   
-   if (!config.isSquadMode && !checkAccess('premium')) return;  
+function toggleSquadMode() { 
    config.isSquadMode = !config.isSquadMode; 
    if(config.isSquadMode) squadModeToggle.classList.add('active'); 
    else squadModeToggle.classList.remove('active');
@@ -1465,23 +1411,3 @@ return [...new Set(relevantChunks)].join('\n---\n');
 }
 
 settingsModal.addEventListener('click', (e) => { if(e.target===settingsModal) closeSettings(); });
-
-async function verifyLicenseKey() {
-    // 1. Lấy mã Key người dùng đang nhập trong ô Input
-    // (Đây chính là câu lệnh bạn hỏi)
-    const inputVal = document.getElementById('licenseKeyInput').value;
-    
-    // 2. Kiểm tra nếu rỗng
-    if (!inputVal.trim()) {
-        alert("Vui lòng nhập Key vào đã sếp ơi!");
-        return;
-    }
-
-    // 3. Gọi hàm kiểm tra với Supabase (hàm logic đã viết ở trên)
-    const btn = document.querySelector('button[onclick="verifyLicenseKey()"]');
-    const oldText = btn.innerText;
-    btn.innerText = "Checking..."; // Hiệu ứng đang tải
-
-    await verifyKey(inputVal, true); // Gọi hàm logic chính
-
-    btn.innerText = oldText; // Trả lại chữ CHECK cũ
