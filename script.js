@@ -824,6 +824,12 @@ initChat();
  
  // --- SETTINGS UI ---
  function openSettings() {
+    function openSettings() {
+    // Tìm modal mỗi lần gọi (fallback)
+    const modal = document.getElementById('settingsModal');
+    if (!modal) {
+        console.error("❌ Không tìm thấy settingsModal!");
+        return;
     document.getElementById('apiKeyInput').value = config.apiKey;
     document.getElementById('customUrlInput').value = config.customUrl;
     document.getElementById('systemPromptInput').value = config.systemPrompt;
@@ -839,6 +845,7 @@ initChat();
     } else {
             switchEl.style.background = '#334155';
             switchEl.innerHTML = '<div style="position:absolute; top:2px; left:2px; width:14px; height:14px; background:white; border-radius:50%;"></div>';
+        modal.classList.add('active');
     }
     
     renderModelList();
@@ -902,7 +909,10 @@ initChat();
     renderHeaderStatus();
     closeSettings();
  }
- function closeSettings() { settingsModal.classList.remove('active'); }
+ function closeSettings() {
+    const modal = document.getElementById('settingsModal');
+    if (modal) modal.classList.remove('active');
+}
  
  // --- UTILS ---
  function stopGeneration() { abortControllers.forEach(c => c.abort()); abortControllers = []; }
