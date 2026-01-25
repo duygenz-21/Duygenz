@@ -1745,6 +1745,61 @@ function setGeneratingState(isGen) {
     userInput.disabled = isGen;
 }
 
+// ==========================================
+// [NEW] TỰ ĐỘNG CHỐT SỔ KHI RỜI TRANG
+// ==========================================
+function syncRemainingUsage() {
+    // 1. Lấy lại các thông số hiện tại
+    const counter = parseInt(localStorage.getItem('security_msg_counter') || '0');
+    const nextCheck = parseInt(localStorage.getItem('sec_next_check') || '5');
+    const gap = parseInt(localStorage.getItem('sec_current_gap') || '5');
+    
+    // 2. Tính số tin nhắn chưa được đồng bộ
+    // Công thức: Tổng đã chat - Mốc check gần nhất
+    // Mốc gần nhất = (Mốc tiếp theo - Khoảng cách)
+    const lastCheckpoint = nextCheck - gap;
+    const pendingAmount = counter - lastCheckpoint;
+
+    // 3. Nếu có số dư chưa gửi (> 0) thì gửi nốt
+    if (pendingAmount > 0) {
+        const key = localStorage.getItem('license_key');
+        if (!key) return; // Khách Free thì thôi
+
+        // Dùng fetch với { keepalive: true } để trình duyệt cho phép gửi kể cả khi tab đã đóng
+        fetch(`${LICENSE_CONFIG.SUPABASE_URL}/rest/v1/rpc/increment_usage`, {
+            method: 'POST',
+            headers: {
+                'apikey': LICENSE_CONFIG.SUPABASE_KEY,
+                'Authorization': `Bearer ${LICENSE_CONFIG.SUPABASE_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                p_key: key, 
+                p_amount: pendingAmount 
+            }),
+            keepalive: true // 👈 QUAN TRỌNG: Giúp request sống sót khi tắt tab
+        });
+        
+        console.log(`💾 Đã chốt sổ cuối ngày: +${pendingAmount} lượt.`);
+        
+        // Cập nhật lại state để tránh gửi trùng nếu khách mở lại ngay
+        // (Thực ra local reset ngày mới sẽ lo việc này, nhưng cập nhật cho chắc)
+        localStorage.setItem('sec_next_check', (counter + gap).toString()); 
+    }
+}
+
+// Bắt sự kiện khi người dùng ẩn tab hoặc tắt trình duyệt
+// (Dùng visibilitychange chuẩn hơn beforeunload trên Mobile)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        syncRemainingUsage();
+    }
+});
+
+// Bắt thêm trường hợp tắt hẳn trình duyệt trên Desktop cho chắc ăn
+window.addEventListener("pagehide", syncRemainingUsage);
+
+
 // Event Listeners
 settingsModal.addEventListener('click', (e) => { if(e.target===settingsModal) closeSettings(); });
 window.onload = initChat; // Start Engine when DOM is ready
