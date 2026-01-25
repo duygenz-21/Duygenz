@@ -131,13 +131,18 @@
             <h2 class="text-lg font-bold text-white mb-4">⚙️ Cấu Hình Hệ Thống</h2>
             
             <div class="mb-4 p-3 border border-yellow-500/30 bg-yellow-900/10 rounded-lg">
-                <label class="text-xs text-yellow-400 font-bold block mb-1">🔑 LICENSE KEY (Để mở khoá)</label>
-                <div class="flex gap-2">
-                    <input type="text" id="licenseKeyInput" class="setting-input flex-1" placeholder="Nhập Key của bạn..." style="margin-bottom:0">
-                    <button onclick="verifyLicenseKey()" class="bg-yellow-600 text-white px-3 rounded text-xs font-bold hover:bg-yellow-500 whitespace-nowrap">
-                        CHECK
-                    </button>
-             </div>
+    <label class="text-xs text-yellow-400 font-bold block mb-1">🔑 KÍCH HOẠT LICENSE (VIP)</label>
+    <div class="flex gap-2">
+        <input type="text" id="licenseKeyInput" class="setting-input flex-1" placeholder="Nhập mã Key..." style="margin-bottom:0">
+        <button onclick="verifyLicenseKey()" class="bg-yellow-600 text-white px-3 rounded text-xs font-bold hover:bg-yellow-500 whitespace-nowrap">
+            CHECK
+        </button>
+    </div>
+    <div id="licenseStatusMsg" class="text-[10px] mt-1 text-slate-400 italic">
+        Trạng thái: <span id="licenseText">Đang dùng thử (Giới hạn 10 chat)</span>
+    </div>
+</div>
+
             
             <div class="mb-4">
                 <label class="text-xs text-blue-400 font-bold block mb-1">ENDPOINT URL (Tùy chọn)</label>
