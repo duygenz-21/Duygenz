@@ -511,7 +511,14 @@ const RESOURCES = {
  const squadModeToggle = document.getElementById('squadModeToggle');
  const settingsModal = document.getElementById('settingsModal');
  
- // --- INIT ---
+// --- KHỞI TẠO BIẾN GLOBAL ---
+// Di chuyển các biến DOM ra ngoài hàm initChat
+const messagesArea = document.getElementById('messagesArea');
+const userInput = document.getElementById('userInput');
+const squadModeToggle = document.getElementById('squadModeToggle');
+const settingsModal = document.getElementById('settingsModal'); // ✅ ĐÃ DI CHUYỂN RA NGOÀI
+
+// --- INIT ---
 async function initChat() {
     // 1. Chạy khôi phục dữ liệu từ IndexedDB trước
     const hasOldData = await restoreSystemState();
@@ -539,6 +546,13 @@ async function initChat() {
     
     // 5. Cập nhật hiển thị License
     updateLicenseStatusDisplay();
+    
+    // 6. Thêm sự kiện click cho modal (nếu chưa có)
+    if (settingsModal) {
+        settingsModal.addEventListener('click', (e) => { 
+            if(e.target === settingsModal) closeSettings(); 
+        });
+    }
 }
 // Gọi hàm init
 initChat();
