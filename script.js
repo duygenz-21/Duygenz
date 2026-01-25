@@ -1485,4 +1485,3 @@ async function verifyLicenseKey() {
     await verifyKey(inputVal, true); // Gọi hàm logic chính
 
     btn.innerText = oldText; // Trả lại chữ CHECK cũ
-}
