@@ -5,32 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Streaming Pro v5.3 (License Integrated) 🚀</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Marked JS (Markdown Parser) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
-    <!-- Highlight.js (Tô màu Code) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     
-    <!-- FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
-    <!-- KaTeX (Toán học) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
-    <!-- External CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="bg-slate-900 text-slate-200 h-screen overflow-hidden relative">
 
-    <div class="chat-container">
-        <!-- Header -->        
-        <header class="p-2 flex justify-between items-center bg-slate-900/95 border-b border-slate-700 backdrop-blur z-50">
+    <div class="chat-container flex flex-col h-full">
+        <header class="p-2 flex justify-between items-center bg-slate-900/95 border-b border-slate-700 backdrop-blur z-50 shrink-0">
             <div class="flex flex-col overflow-hidden mr-2">
                 <h1 class="text-sm font-bold text-white whitespace-nowrap">AI Pro <span class="text-xs font-normal text-purple-400">v5.3 MoE</span></h1>
                 <span id="headerStatus" class="text-[10px] text-slate-400 truncate">Ready</span>
@@ -53,39 +44,49 @@
                 </div>
                 
                 <div class="flex gap-1 border-l border-slate-700 pl-2">
-                    <button onclick="openSettings()" class="w-7 h-7 rounded bg-slate-800 text-slate-400 hover:text-blue-400"><i class="fas fa-cog text-xs"></i></button>
-                    <button onclick="confirmClearChat()" class="w-7 h-7 rounded bg-slate-800 text-slate-400 hover:text-red-400"><i class="fas fa-trash-alt text-xs"></i></button>
+                    <button onclick="startNewChat()" class="w-7 h-7 rounded bg-slate-800 text-slate-400 hover:text-white transition-colors" title="Chat Mới">
+                        <i class="fas fa-plus text-xs"></i>
+                    </button>
+                    
+                    <button onclick="toggleHistoryPanel()" class="w-7 h-7 rounded bg-slate-800 text-slate-400 hover:text-green-400 transition-colors" title="Lịch sử Chat">
+                        <i class="fas fa-history text-xs"></i>
+                    </button>
+
+                    <button onclick="openSettings()" class="w-7 h-7 rounded bg-slate-800 text-slate-400 hover:text-blue-400 transition-colors">
+                        <i class="fas fa-cog text-xs"></i>
+                    </button>
+
+                    <button onclick="confirmClearChat()" class="w-7 h-7 rounded bg-slate-800 text-slate-400 hover:text-red-400 transition-colors">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
                 </div>
             </div>
         </header>
                  
-        <!-- Tin nhắn -->
-        <div id="messagesArea" class="messages-area"></div>
+        <div id="messagesArea" class="messages-area flex-1 overflow-y-auto p-4 space-y-4"></div>
 
-        <!-- Vùng nhập liệu -->
-        <div class="input-area pb-4 bg-[#0b1121]">
-            <div class="suggestion-chips mb-2" id="suggestionChips">
+        <div class="input-area pb-4 bg-[#0b1121] shrink-0 border-t border-slate-700/50 p-2">
+            <div class="suggestion-chips mb-2 flex gap-2 overflow-x-auto pb-1" id="suggestionChips">
                 <div class="chip" onclick="useSuggestion('Tóm tắt ngắn gọn')">📝 Tóm tắt</div>                
-                <div class="chip" onclick="useSuggestion('Hãy Tìm Patterns trong bài viết')">🧩 Hãy Tìm Patterns</div>
+                <div class="chip" onclick="useSuggestion('Hãy Tìm Patterns trong bài viết')">🧩 Tìm Patterns</div>
                 <div class="chip" onclick="useSuggestion('Vẽ biểu đồ Python')">🐍 Python</div>
             </div>
 
-            <!-- File Preview (Hidden by default) -->
             <div id="filePreview" class="hidden text-xs text-blue-400 bg-slate-800 p-1 px-2 rounded mb-1 w-fit flex items-center gap-2">
                 <i class="fas fa-file-alt"></i> <span id="fileName">file.txt</span>
                 <button onclick="clearFile()" class="text-red-400 hover:text-red-300"><i class="fas fa-times"></i></button>
             </div>
             
-            <div id="ragStatus" class="rag-bar-container hidden">
+            <div id="ragStatus" class="rag-bar-container hidden mb-2">
                 <div class="flex justify-between items-center mb-1">
                     <div class="flex items-center gap-2">
                         <i class="fas fa-microchip text-blue-400 animate-spin"></i>
-                        <span id="ragStatusText" class="rag-text-glow">INITIALIZING NEON SCAN...</span>
+                        <span id="ragStatusText" class="rag-text-glow text-[10px]">SCANNING...</span>
                     </div>
                     <span id="ragProgressPercent" class="text-[10px] text-purple-300 font-bold font-mono">0%</span>
                 </div>
-                <div class="rag-progress-track">
-                    <div id="ragProgressBar" class="rag-progress-fill"></div>
+                <div class="rag-progress-track h-1 bg-slate-800 rounded overflow-hidden">
+                    <div id="ragProgressBar" class="rag-progress-fill h-full bg-blue-500 w-0 transition-all duration-300"></div>
                 </div>
             </div>
 
@@ -93,165 +94,116 @@
                 <i class="fas fa-bolt"></i> <span id="typingText">AI đang suy nghĩ...</span>
             </div>
 
-            <div class="input-wrapper">
+            <div class="input-wrapper flex gap-2 items-end bg-slate-800/50 p-2 rounded-lg border border-slate-700 focus-within:border-blue-500 transition-colors">
                 <input type="file" id="fileInput" hidden multiple accept="image/*, .pdf, .txt, .md, .js, .py, .html, .css, .json, .csv" onchange="handleFileSelect(this)">
                 
-                <button onclick="document.getElementById('fileInput').click()" class="action-btn" title="Đính kèm file (Ảnh OCR hoặc Text)">
+                <button onclick="document.getElementById('fileInput').click()" class="action-btn text-slate-400 hover:text-white p-2" title="Đính kèm file">
                     <i class="fas fa-paperclip"></i>
                 </button>
                 
-                <textarea id="userInput" placeholder="Nhập tin nhắn..." rows="1" oninput="autoResize(this)"></textarea>
+                <textarea id="userInput" class="flex-1 bg-transparent border-none outline-none text-white resize-none text-sm max-h-32 py-2" placeholder="Nhập tin nhắn..." rows="1" oninput="autoResize(this)"></textarea>
                 
-                <button id="sendBtn" onclick="sendMessage()" class="action-btn send-btn">
+                <button id="sendBtn" onclick="sendMessage()" class="action-btn send-btn text-blue-400 hover:text-blue-300 p-2">
                     <i class="fas fa-paper-plane"></i>
                 </button>
-                <button id="stopBtn" onclick="stopGeneration()" class="action-btn stop-btn">
+            
+                <button id="stopBtn" onclick="stopGeneration()" class="action-btn stop-btn text-red-400 hover:text-red-300 p-2 hidden">
                     <i class="fas fa-stop"></i>
                 </button>
             </div>
         </div>
     </div>
 
-    <div class="flex gap-1 border-l border-slate-700 pl-2">
-    <button onclick="startNewChat()" class="w-7 h-7 rounded bg-slate-800 text-slate-400 hover:text-white" title="Chat Mới">
-        <i class="fas fa-plus text-xs"></i>
-    </button>
-    
-    <button onclick="toggleHistoryPanel()" class="w-7 h-7 rounded bg-slate-800 text-slate-400 hover:text-green-400" title="Lịch sử Chat">
-        <i class="fas fa-history text-xs"></i>
-    </button>
-    <button onclick="openSettings()" class="w-7 h-7 rounded bg-slate-800 text-slate-400 hover:text-blue-400"><i class="fas fa-cog text-xs"></i></button>
-    <button onclick="confirmClearChat()" class="w-7 h-7 rounded bg-slate-800 text-slate-400 hover:text-red-400"><i class="fas fa-trash-alt text-xs"></i></button>
-</div>
-    <!-- Modal Cài Đặt -->
-    <div id="settingsModal" class="modal-overlay">
-        <div class="modal-content">
-            <h2 class="text-lg font-bold text-white mb-4">⚙️ Cấu Hình Hệ Thống</h2>
+    <div id="settingsModal" class="modal-overlay fixed inset-0 bg-black/80 hidden z-[70] flex justify-center items-center backdrop-blur-sm">
+        <div class="modal-content bg-slate-900 border border-slate-700 p-6 rounded-lg w-[90%] max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 class="text-lg font-bold text-white mb-4 border-b border-slate-700 pb-2">⚙️ Cấu Hình Hệ Thống</h2>
             
             <div class="mb-4">
-                <label class="text-xs text-blue-400 font-bold block mb-1">ENDPOINT URL (Tùy chọn)</label>
-                <input type="text" id="customUrlInput" class="setting-input mb-1" placeholder="Mặc định: https://openrouter.ai/api/v1/chat/completions">
-                <div class="text-[10px] text-slate-500">Để trống sẽ dùng Openrouter. Nhập URL nếu dùng Local AI (Ollama) hoặc Enterprise.</div>
+                <label class="text-xs text-blue-400 font-bold block mb-1">ENDPOINT URL</label>
+                <input type="text" id="customUrlInput" class="setting-input w-full bg-slate-800 border border-slate-600 rounded p-2 text-sm text-white" placeholder="https://openrouter.ai/api/v1/chat/completions">
             </div>
 
             <div class="mb-4">
                 <label class="text-xs text-slate-400 font-bold block mb-1">API KEY</label>
-                <input type="password" id="apiKeyInput" class="setting-input" placeholder="sk-...">
+                <input type="password" id="apiKeyInput" class="setting-input w-full bg-slate-800 border border-slate-600 rounded p-2 text-sm text-white" placeholder="sk-...">
             </div>
 
-            <!-- 👇 LICENSE SECTION (ĐÃ FIX: Thêm ID licenseDaysLeft để tránh lỗi JS) 👇 -->
-            <div id="licenseSection" class="mt-4 pt-2 border-t border-slate-600">
-                <div class="flex justify-between items-end mb-2">
-                    <div id="licenseStatusContent" class="text-xs text-yellow-400 font-bold"><i class="fas fa-key"></i> Kiểm tra License...</div>
-                    <div id="licenseDaysLeft" class="text-[10px] text-slate-500"></div>
-                </div>
-                <div class="flex gap-2">
-                    <input id="licenseKeyInput" placeholder="Nhập License Key..." class="flex-1 bg-slate-800 text-white p-2 text-sm rounded border border-slate-600">
-                    <button onclick="handleActivateLicense()" class="bg-green-600 text-white px-3 rounded hover:bg-green-500 font-bold"><i class="fas fa-check"></i></button>
-                    <button onclick="handleDeactivateLicense()" class="bg-red-900 text-white px-3 rounded hover:bg-red-700"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-            <!-- 👆 KẾT THÚC LICENSE SECTION 👆 -->
-            
             <div class="mb-4 mt-4">
                 <div class="flex justify-between items-center mb-1">
-                    <label class="text-xs text-green-400 font-bold">TEMPERATURE (Độ sáng tạo)</label>
+                    <label class="text-xs text-green-400 font-bold">TEMPERATURE</label>
                     <span id="tempDisplay" class="text-xs text-white font-mono bg-slate-700 px-2 rounded">0.7</span>
                 </div>
-                <input type="range" id="tempInput" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer" 
-                       min="0" max="2" step="0.1" value="0.7" 
-                       oninput="document.getElementById('tempDisplay').innerText = this.value">
-                <div class="flex justify-between text-[10px] text-slate-500 mt-1">
-                    <span>Chính xác (0.1)</span>
-                    <span>Cân bằng (0.7)</span>
-                    <span>Bay bổng (1.5+)</span>
-                </div>
+                <input type="range" id="tempInput" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer" min="0" max="2" step="0.1" value="0.7" oninput="document.getElementById('tempDisplay').innerText = this.value">
             </div>
 
             <div class="mb-4">
-                <label class="text-xs text-purple-400 font-bold block mb-1">SQUAD MODELS (Biệt đội)</label>
-                <div id="modelList" class="model-list-container"></div>
-                <div class="flex gap-2 mt-2">
-                    <select id="newModelSelect" class="setting-input flex-1" style="margin-bottom:0; height: 38px;">
-                        <option value="" selected disabled>Chọn model từ danh sách...</option> 
+                <label class="text-xs text-purple-400 font-bold block mb-1">SQUAD MODELS</label>
+                <div id="modelList" class="model-list-container space-y-1 mb-2"></div>
+                
+                <div class="flex gap-2">
+                    <select id="newModelSelect" class="setting-input flex-1 bg-slate-800 border border-slate-600 rounded p-2 text-xs text-white">
+                        <option value="" selected disabled>Chọn model...</option> 
                         <optgroup label="🤖 OpenRouter">                                   
-                            <option value="openai/gpt-oss-120b">OpenAI:gpt-oss-120b Paid</option>
-                            <option value="openai/gpt-oss-120b:exacto">Chat gpt Oss exacto</option>
-                            <option value="nvidia/nemotron-3-nano-30b-a3b">NVIDIA: Nemotron 3 Nano 30B A3B</option>
-                            <option value="deepseek/deepseek-v3.2">DeepSeek: DeepSeek V3.2 paid</option>   
-                            <option value="xiaomi/mimo-v2-flash">Mimo V2 Paid</option>                           
+                            <option value="openai/gpt-oss-120b">OpenAI: GPT OSS 120B</option>
+                            <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (Free)</option>
+                            <option value="deepseek/deepseek-v3.2">DeepSeek V3.2</option>   
                         </optgroup>                       
                     </select>
-                    
-                    <button onclick="addSelectedModel()" class="bg-blue-600 text-white rounded px-3 hover:bg-blue-500">
-                        <i class="fas fa-plus"></i>
-                    </button>
+                    <button onclick="addSelectedModel()" class="bg-blue-600 text-white rounded px-3 hover:bg-blue-500"><i class="fas fa-plus"></i></button>
                 </div>
                 
-                <div class="mt-2">
-                    <input type="text" id="customModelInput" class="setting-input" 
-                           placeholder="Hoặc nhập model tùy chỉnh..." 
-                           style="margin-bottom:0;">
-                    <button onclick="addCustomModel()" class="bg-slate-700 text-white rounded px-3 py-1 mt-1 text-xs hover:bg-slate-600">
-                        <i class="fas fa-plus"></i> Thêm tùy chỉnh
-                    </button>
+                <div class="mt-2 flex gap-2">
+                    <input type="text" id="customModelInput" class="setting-input flex-1 bg-slate-800 border border-slate-600 rounded p-2 text-xs text-white" placeholder="Model ID tùy chỉnh...">
+                    <button onclick="addCustomModel()" class="bg-slate-700 text-white rounded px-3 text-xs hover:bg-slate-600"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
             
             <div class="mb-4">
                 <label class="text-xs text-slate-400 font-bold block mb-1">SYSTEM PROMPT</label>
-                <textarea id="systemPromptInput" class="setting-input h-24"></textarea>
+                <textarea id="systemPromptInput" class="setting-input w-full h-24 bg-slate-800 border border-slate-600 rounded p-2 text-xs text-white"></textarea>
             </div>
 
-            <!-- CÀI ĐẶT VISION -->
             <div class="mb-4 border-t border-slate-700 pt-4">
-                <label class="text-xs text-yellow-400 font-bold block mb-2">👁️ AI VISION (Xử lý ảnh & Biểu đồ)</label>
-                
+                <label class="text-xs text-yellow-400 font-bold block mb-2">👁️ AI VISION</label>
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-slate-300">Bật chế độ Vision (Thay thế OCR)</span>
+                    <span class="text-xs text-slate-300">Bật Vision Mode</span>
                     <div class="squad-mode-toggle active" onclick="toggleVisionSetting(this)">
-                        <div id="visionToggleBtn" class="toggle-switch bg-slate-700"></div>
+                        <div id="visionToggleBtn" class="toggle-switch bg-slate-700 w-8 h-4 rounded-full relative"></div>
                     </div>
                 </div>
-                
-                <label class="text-[10px] text-slate-500 block mb-1">Model Vision (Khuyên dùng: Gemini 2.0 Flash / GPT-4o)</label>
-                <input type="text" id="visionModelInput" class="setting-input" placeholder="google/gemini-2.0-flash-exp:free">
+                <input type="text" id="visionModelInput" class="setting-input w-full bg-slate-800 border border-slate-600 rounded p-2 text-xs text-white" placeholder="google/gemini-2.0-flash-exp:free">
             </div>
 
-            <div class="flex gap-2 mt-4">
-                <button onclick="closeSettings()" class="w-1/3 py-2 rounded bg-slate-700 text-white hover:bg-slate-600">Huỷ</button>
-                <button onclick="saveSettings()" class="w-2/3 py-2 rounded bg-blue-600 text-white font-bold hover:bg-blue-500">Lưu Cấu Hình ✅</button>
+            <div class="flex gap-2 mt-4 pt-4 border-t border-slate-700">
+                <button onclick="closeSettings()" class="w-1/3 py-2 rounded bg-slate-700 text-white hover:bg-slate-600 font-bold text-sm">Huỷ</button>
+                <button onclick="saveSettings()" class="w-2/3 py-2 rounded bg-blue-600 text-white font-bold hover:bg-blue-500 text-sm">Lưu Cấu Hình ✅</button>
             </div>
         </div>
     </div>
 
-    <!-- External JavaScript -->
+    <div id="historyPanel" class="fixed top-0 left-0 h-full w-72 bg-slate-900/95 backdrop-blur border-r border-slate-700 z-[60] shadow-2xl flex flex-col transform transition-transform duration-300 -translate-x-full">
+        <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
+            <h3 class="text-white font-bold text-sm flex items-center gap-2">
+                <i class="fas fa-history text-green-400"></i> LỊCH SỬ CHAT
+            </h3>
+            <button onclick="toggleHistoryPanel()" class="text-slate-400 hover:text-red-400 transition-colors">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+
+        <div id="historyList" class="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-2">
+            </div>
+
+        <div class="p-3 border-t border-slate-700 bg-slate-900">
+            <button onclick="startNewChat()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20">
+                <i class="fas fa-plus-circle"></i> CUỘC TRÒ CHUYỆN MỚI
+            </button>
+            <div class="text-[10px] text-slate-500 text-center mt-2 italic">
+                *Dữ liệu tự động xóa sau 3 ngày
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
-
-    <div id="historyPanel" class="fixed top-0 left-0 h-full w-72 bg-slate-900/95 backdrop-blur border-r border-slate-700 z-[60] shadow-2xl flex flex-col">
-    <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
-        <h3 class="text-white font-bold text-sm flex items-center gap-2">
-            <i class="fas fa-history text-green-400"></i> LỊCH SỬ CHAT
-        </h3>
-        <button onclick="toggleHistoryPanel()" class="text-slate-400 hover:text-red-400 transition-colors">
-            <i class="fas fa-times text-lg"></i>
-        </button>
-    </div>
-
-    <div id="historyList" class="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-2">
-        <div class="text-center text-slate-500 text-xs mt-10">
-            <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
-        </div>
-    </div>
-
-    <div class="p-3 border-t border-slate-700 bg-slate-900">
-        <button onclick="startNewChat()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20">
-            <i class="fas fa-plus-circle"></i> CUỘC TRÒ CHUYỆN MỚI
-        </button>
-        <div class="text-[10px] text-slate-500 text-center mt-2 italic">
-            *Dữ liệu tự động xóa sau 3 ngày
-        </div>
-    </div>
-</div>
 </body>
 </html>
