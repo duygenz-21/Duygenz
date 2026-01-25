@@ -11,15 +11,6 @@ const LICENSE_CONFIG = {
     SUPABASE_URL: 'https://uqchbponkvxkbdkpkgub.supabase.co', // ⚠️ THAY BẰNG URL CỦA BẠN
     SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxY2hicG9ua3Z4a2Jka3BrZ3ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIxMDYsImV4cCI6MjA4NDgzODEwNn0.9xkQlWLymaxd3pndmVUr5TGWdJYwT7lIXM993QKtF3Q'                   // ⚠️ THAY BẰNG ANON KEY CỦA BẠN
 };
-const DB_CONFIG = {
-    NAME: 'UltimateAIChatDB',
-    VERSION: 1,
-    STORES: {
-        CHAT: 'chat_history',      // Lưu tin nhắn & HTML
-        LICENSE: 'user_license',   // Lưu Key bản quyền (Không bao giờ xóa tự động)
-        USAGE: 'usage_tracking'    // Lưu số lượt dùng Free (Chống reset lậu)
-    }
- };
 let currentSessionId = 'session_' + new Date().getTime(); 
 // Lưu trữ và đồng bộ số lượt đã dùng với LocalStorage
 let usageData = {
@@ -355,15 +346,29 @@ function addLicenseUI() {
     if (document.getElementById('licenseSection')) return;
 
     const licenseHTML = `
-    <div id="licenseSection" class="mt-4 pt-2 border-t border-slate-600">
-    <div id="licenseStatusContent" class="text-xs text-yellow-400 mb-1 font-bold"><i class="fas fa-key"></i> Kiểm tra License...</div>
-    
-    <div id="licenseDaysLeft" class="text-[10px] text-slate-500 mb-2 italic"></div>
-    <div class="flex gap-1">
-        <input id="licenseKeyInput" placeholder="Nhập License Key..." class="flex-1 bg-slate-800 text-white p-1 text-sm rounded border border-slate-600">
-        <button onclick="handleActivateLicense()" class="bg-green-600 text-white px-3 rounded hover:bg-green-500"><i class="fas fa-check"></i></button>
-        <button onclick="handleDeactivateLicense()" class="bg-red-900 text-white px-3 rounded hover:bg-red-700"><i class="fas fa-trash"></i></button>
-              </div>
+      <div id="licenseSection" class="settings-section mt-4 pt-4 border-t border-slate-600">
+        <h3 class="text-yellow-400 font-bold mb-2"><i class="fas fa-id-card"></i> License System</h3>
+        
+        <div id="licenseStatus" class="mb-3 p-3 rounded bg-slate-900 border border-slate-700">
+          <div id="licenseStatusContent">
+            ${localStorage.getItem('license_key') ? 
+              `<div class="text-green-400 font-bold"><i class="fas fa-check-circle"></i> PREMIUM ACTIVE</div>` : 
+              `<div class="text-slate-400"><i class="fas fa-user-clock"></i> Free Tier: ${LICENSE_CONFIG.FREE_CHAT_LIMIT} chat/day</div>`}
+          </div>
+          <div id="licenseDaysLeft" class="text-xs text-slate-500 mt-1"></div>
+        </div>
+        
+        <div class="flex gap-2">
+            <input type="text" id="licenseKeyInput" placeholder="Paste License Key..." 
+                class="flex-1 p-2 rounded border border-slate-600 bg-slate-800 text-white text-sm"
+                value="${localStorage.getItem('license_key') || ''}">
+            <button onclick="handleActivateLicense()" class="px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-white font-bold text-sm">
+                <i class="fas fa-check"></i>
+            </button>
+            <button onclick="handleDeactivateLicense()" class="px-3 py-2 bg-red-600 hover:bg-red-700 rounded text-white text-sm">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
         <div class="mt-2 text-[10px] text-slate-500 italic">
             * Liên hệ Admin để mua key nếu bạn cần dùng nhiều hơn.
         </div>
@@ -511,14 +516,7 @@ const RESOURCES = {
  const squadModeToggle = document.getElementById('squadModeToggle');
  const settingsModal = document.getElementById('settingsModal');
  
-// --- KHỞI TẠO BIẾN GLOBAL ---
-// Di chuyển các biến DOM ra ngoài hàm initChat
-const messagesArea = document.getElementById('messagesArea');
-const userInput = document.getElementById('userInput');
-const squadModeToggle = document.getElementById('squadModeToggle');
-const settingsModal = document.getElementById('settingsModal'); // ✅ ĐÃ DI CHUYỂN RA NGOÀI
-
-// --- INIT ---
+ // --- INIT ---
 async function initChat() {
     // 1. Chạy khôi phục dữ liệu từ IndexedDB trước
     const hasOldData = await restoreSystemState();
@@ -546,13 +544,6 @@ async function initChat() {
     
     // 5. Cập nhật hiển thị License
     updateLicenseStatusDisplay();
-    
-    // 6. Thêm sự kiện click cho modal (nếu chưa có)
-    if (settingsModal) {
-        settingsModal.addEventListener('click', (e) => { 
-            if(e.target === settingsModal) closeSettings(); 
-        });
-    }
 }
 // Gọi hàm init
 initChat();
@@ -824,12 +815,6 @@ initChat();
  
  // --- SETTINGS UI ---
  function openSettings() {
-    function openSettings() {
-    // Tìm modal mỗi lần gọi (fallback)
-    const modal = document.getElementById('settingsModal');
-    if (!modal) {
-        console.error("❌ Không tìm thấy settingsModal!");
-        return;
     document.getElementById('apiKeyInput').value = config.apiKey;
     document.getElementById('customUrlInput').value = config.customUrl;
     document.getElementById('systemPromptInput').value = config.systemPrompt;
@@ -845,7 +830,6 @@ initChat();
     } else {
             switchEl.style.background = '#334155';
             switchEl.innerHTML = '<div style="position:absolute; top:2px; left:2px; width:14px; height:14px; background:white; border-radius:50%;"></div>';
-        modal.classList.add('active');
     }
     
     renderModelList();
@@ -909,10 +893,7 @@ initChat();
     renderHeaderStatus();
     closeSettings();
  }
- function closeSettings() {
-    const modal = document.getElementById('settingsModal');
-    if (modal) modal.classList.remove('active');
-}
+ function closeSettings() { settingsModal.classList.remove('active'); }
  
  // --- UTILS ---
  function stopGeneration() { abortControllers.forEach(c => c.abort()); abortControllers = []; }
@@ -1690,6 +1671,16 @@ initChat();
  * Chịu trách nhiệm lưu trữ an toàn, chống mất dữ liệu và quản lý hạn 3 ngày.
  */
 
+const DB_CONFIG = {
+    NAME: 'UltimateAIChatDB',
+    VERSION: 1,
+    STORES: {
+        CHAT: 'chat_history',      // Lưu tin nhắn & HTML
+        LICENSE: 'user_license',   // Lưu Key bản quyền (Không bao giờ xóa tự động)
+        USAGE: 'usage_tracking'    // Lưu số lượt dùng Free (Chống reset lậu)
+    }
+ };
+
  // 1. Mở kết nối Database
  function openDB() {
     return new Promise((resolve, reject) => {
@@ -1733,3 +1724,4 @@ initChat();
     tx.objectStore(storeName).delete(key);
     return tx.complete;
  }
+settingsModal.addEventListener('click', (e) => { if(e.target===settingsModal) closeSettings(); });
