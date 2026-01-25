@@ -710,3 +710,23 @@ textarea {
 .raw-card {
    min-width: 200px; font-size: 10px; background: #000; border: 1px solid #334155; padding: 5px; border-radius: 4px; max-height: 100px; overflow: hidden;
 }
+/* --- 🆕 HISTORY PANEL STYLES (Thêm đoạn này) --- */
+#historyPanel {
+    transition: transform 0.3s ease-in-out;
+    /* Mặc định panel đã có class fixed và translate trong HTML, 
+       nhưng ta thêm style này để đảm bảo độ mượt */
+    will-change: transform;
+}
+
+#historyPanel.active {
+    transform: translateX(0) !important; /* Kích hoạt trượt ra */
+    box-shadow: 5px 0 25px rgba(0,0,0,0.5);
+}
+
+.history-item {
+    transition: all 0.2s;
+}
+.history-item:hover {
+    background: #1e293b;
+    border-color: #475569;
+}
