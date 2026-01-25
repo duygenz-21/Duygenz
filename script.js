@@ -39,6 +39,82 @@ function checkAndResetDailyUsage() {
         console.log('🔄 New Day: Daily limits have been reset.');
     }
 }
+ /**
+ * --- LOGIC NGHIỆP VỤ: AUTO SAVE & AUTO CLEAR ---
+ */
+
+// A. Lưu trạng thái Chat hiện tại (Gọi mỗi khi chat xong)
+async function saveSmartState() {
+    const now = new Date().getTime(); // Lấy thời gian dạng số (timestamp)
+    
+    const chatData = {
+        history: chatHistory,           // Mảng ngữ cảnh cho AI
+        html: messagesArea.innerHTML,   // Giao diện hiển thị
+        lastActive: now                 // Dấu mốc thời gian
+    };
+    
+    await dbPut(DB_CONFIG.STORES.CHAT, 'current_session', chatData);
+    console.log('✅ Chat Saved (IndexedDB)');
+}
+
+ // B. Lưu License Key (Gọi khi kích hoạt thành công)
+ async function saveLicenseSecurely(key, data) {
+    await dbPut(DB_CONFIG.STORES.LICENSE, 'active_key', {
+        key: key,
+        data: data,
+        activatedAt: new Date().getTime()
+    });
+    console.log('🔐 License Secured in DB');
+ }
+
+ // C. Đồng bộ lượt dùng Free (Gọi mỗi khi trừ lượt)
+ async function syncUsageToDB() {
+    // Backup usageData vào DB để người dùng không xóa được bằng cách clear cache thường
+    await dbPut(DB_CONFIG.STORES.USAGE, 'daily_stats', usageData);
+ }
+
+ // D. HÀM QUAN TRỌNG NHẤT: KHÔI PHỤC DỮ LIỆU KHI VÀO WEB
+ async function restoreSystemState() {
+    // 1. Khôi phục License trước (Ưu tiên số 1)
+    const savedLicense = await dbGet(DB_CONFIG.STORES.LICENSE, 'active_key');
+    if (savedLicense) {
+        // Nếu localStorage bị mất nhưng DB còn, thì khôi phục lại ngay
+        if (!localStorage.getItem('license_key')) {
+            localStorage.setItem('license_key', savedLicense.key);
+            localStorage.setItem('license_data', JSON.stringify(savedLicense.data));
+            console.log('♻️ Đã khôi phục License từ Database an toàn.');
+        }
+     }
+
+    // 2. Khôi phục Chat History (Có kiểm tra hạn 3 ngày)
+    const savedChat = await dbGet(DB_CONFIG.STORES.CHAT, 'current_session');
+    
+    if (savedChat) {
+        const now = new Date().getTime();
+        const diffDays = (now - savedChat.lastActive) / (1000 * 60 * 60 * 24); // Tính số ngày
+        
+        if (diffDays > 3) {
+            // Quá 3 ngày -> Xóa chat cũ, về mặc định
+            console.log(`🧹 Dữ liệu cũ (${diffDays.toFixed(1)} ngày). Đang dọn dẹp...`);
+            await dbDelete(DB_CONFIG.STORES.CHAT, 'current_session');
+            return false; // Báo là không có dữ liệu cũ để load
+        } else {
+            // Còn hạn -> Load lại
+            chatHistory = savedChat.history || chatHistory;
+            messagesArea.innerHTML = savedChat.html || messagesArea.innerHTML;
+            
+            // Cuộn xuống cuối và gắn lại nút bấm
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+            if (typeof attachRunButtons === 'function') attachRunButtons();
+            
+            console.log(`📥 Đã tải lại Chat (Cách đây ${diffDays.toFixed(1)} ngày).`);
+            return true; // Báo thành công
+        }
+    }
+    
+    return false;
+}
+
   
 // 2. Gọi API kiểm tra Key (Supabase)
 async function validateLicenseKey(key) {
@@ -309,13 +385,19 @@ const RESOURCES = {
  const settingsModal = document.getElementById('settingsModal');
  
  // --- INIT ---
- initChat();
- 
- function initChat() {
-    renderHeaderStatus();
-    if (messagesArea.innerHTML.trim() === "") messagesArea.innerHTML = WELCOME_HTML;
+ // --- INIT ---
+async function initChat() {
+    // 1. Chạy khôi phục dữ liệu từ IndexedDB trước
+    const hasOldData = await restoreSystemState();
     
-    // Configure Marked to use Highlight.js
+    renderHeaderStatus();
+
+    // 2. Chỉ hiện Welcome nếu không có dữ liệu cũ
+    if (!hasOldData && messagesArea.innerHTML.trim() === "") {
+        messagesArea.innerHTML = WELCOME_HTML;
+    }
+
+    // 3. Cấu hình Markdown
     marked.setOptions({
         highlight: function(code, lang) {
             if (lang && hljs.getLanguage(lang)) {
@@ -326,9 +408,14 @@ const RESOURCES = {
         breaks: true
     });
 
-    // 🆕 Check License Daily Reset
+    // 4. Check Reset ngày mới
     checkAndResetDailyUsage();
- }
+    
+    // 5. Cập nhật hiển thị License
+    updateLicenseStatusDisplay();
+}
+// Gọi hàm init
+initChat();
  
  // --- RENDERING & THROTTLING ---
  function throttle(func, limit) {
@@ -521,7 +608,7 @@ const RESOURCES = {
             const directorPrompt = `
             Bạn là một trợ lý AI thông minh (Director).
             Người dùng vừa gửi một hình ảnh kèm câu hỏi: "${text || 'Hãy phân tích ảnh này'}".
-            Nhiệm vụ: Hãy viết một câu lệnh (Prompt) thật cụ thể, rõ ràng bằng tiếng Anh gửi cho AI Vision để nó trích xuất thông tin cần thiết nhất từ ảnh.
+            Nhiệm vụ: Hãy viết một câu lệnh (Prompt) thật cụ thể và trước câu hỏi nhớ thêm "hãy phân tích hình ảnh " để AI bên ngoài trả lời và bạn sưu tập câu trả lời cho khớp với ý cuar người dùng nhé và phải rõ ràng bằng tiếng Anh gửi cho AI Vision để nó trích xuất thông tin cần thiết nhất từ ảnh.
             Chỉ trả về nội dung câu lệnh (Prompt).`;
             
             const visionInstruction = await runSingleDebateTurn(mainModel, [{role: "user", content: directorPrompt}], statusId);
@@ -578,6 +665,7 @@ const RESOURCES = {
  
     appendUserMessage(text, displayHtml);
     chatHistory.push({ role: "user", content: fullPrompt });
+    saveSmartState();
     if(chatHistory.length > 8) chatHistory = [chatHistory[0], ...chatHistory.slice(-7)];
  
     const responseGroup = createResponseGroup();
@@ -1444,6 +1532,68 @@ const RESOURCES = {
     
     return [...new Set(relevantChunks)].join('\n---\n');
  }
+
+/**
+ * ==========================================================================================
+ * 💾 MODULE: INDEXEDDB MANAGER (SUPER STORAGE)
+ * ==========================================================================================
+ * Chịu trách nhiệm lưu trữ an toàn, chống mất dữ liệu và quản lý hạn 3 ngày.
+ */
+
+const DB_CONFIG = {
+    NAME: 'UltimateAIChatDB',
+    VERSION: 1,
+    STORES: {
+        CHAT: 'chat_history',      // Lưu tin nhắn & HTML
+        LICENSE: 'user_license',   // Lưu Key bản quyền (Không bao giờ xóa tự động)
+        USAGE: 'usage_tracking'    // Lưu số lượt dùng Free (Chống reset lậu)
+    }
+ };
+
+ // 1. Mở kết nối Database
+ function openDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_CONFIG.NAME, DB_CONFIG.VERSION);
+        
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            // Tạo các ngăn chứa nếu chưa có
+            Object.values(DB_CONFIG.STORES).forEach(store => {
+                if (!db.objectStoreNames.contains(store)) db.createObjectStore(store);
+            });
+        };
+
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+ }
+
+ // 2. Hàm Ghi dữ liệu (Đa năng)
+ async function dbPut(storeName, key, value) {
+    const db = await openDB();
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).put(value, key);
+    return tx.complete;
+ }
+
+ // 3. Hàm Đọc dữ liệu (Đa năng)
+ async function dbGet(storeName, key) {
+    const db = await openDB();
+    return new Promise((resolve) => {
+        const tx = db.transaction(storeName, 'readonly');
+        const req = tx.objectStore(storeName).get(key);
+        req.onsuccess = () => resolve(req.result);
+    });
+ }
+
+ // 4. Hàm Xóa dữ liệu (Dùng khi reset chat)
+ async function dbDelete(storeName, key) {
+    const db = await openDB();
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).delete(key);
+    return tx.complete;
+ }
+
  
  settingsModal.addEventListener('click', (e) => { if(e.target===settingsModal) closeSettings(); });
 
