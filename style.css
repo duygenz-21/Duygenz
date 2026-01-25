@@ -1,384 +1,110 @@
-/* =========================================
-   CORE LAYOUT & SCROLLBARS
-   ========================================= */
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: #0f172a; /* bg-slate-900 */
-    color: #e2e8f0; /* text-slate-200 */
-    height: 100vh; /* Full viewport height */
-    overflow: hidden; /* Prevent body scroll, use inner containers */
-    margin: 0;
-}
-
-/* Custom Scrollbar (Webkit) */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.5);
-}
-::-webkit-scrollbar-thumb {
-    background: rgba(51, 65, 85, 0.8); /* bg-slate-700 */
-    border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(71, 85, 105, 1); /* bg-slate-600 */
-}
-
-/* Main Layout Container */
-.chat-container {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    max-width: 1200px; /* Giới hạn chiều rộng tối đa trên màn hình lớn cho đỡ loãng */
-    margin: 0 auto; /* Căn giữa trên màn hình lớn */
-    background-color: #0f172a;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5); /* Thêm chút bóng cho đẹp */
-}
-
-/* Header Area */
-header {
-    padding: 15px 20px;
-    border-bottom: 1px solid rgba(51, 65, 85, 0.5); /* border-slate-700/50 */
-    background: rgba(15, 23, 42, 0.95); /* Backdrop blur effect base */
-    backdrop-filter: blur(10px);
-    z-index: 10;
-}
-
-/* Messages Scrolling Area */
-.messages-area {
-    flex: 1; /* Takes available vertical space */
-    overflow-y: auto; /* Enables scrolling within this area */
-    padding: 20px;
-    scroll-behavior: smooth;
-}
-
-/* Input Area (Fixed at bottom) */
-.input-area {
-    padding: 20px;
-    background: rgba(11, 17, 33, 0.95); /* Slightly darker */
-    border-top: 1px solid rgba(51, 65, 85, 0.5);
-    backdrop-filter: blur(10px);
-    z-index: 20;
-}
-
-/* =========================================
-   COMPONENTS & ELEMENTS
-   ========================================= */
-
-/* Input Wrapper & Field */
-.input-wrapper {
-    background: rgba(30, 41, 59, 0.7); /* bg-slate-800/70 */
-    border: 1px solid rgba(51, 65, 85, 1); /* border-slate-700 */
-    padding: 12px 15px;
-    border-radius: 12px;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: flex-end; /* Align icons with bottom of textarea */
-    gap: 10px;
-}
-.input-wrapper:focus-within {
-    border-color: #3b82f6; /* blue-500 */
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-#userInput {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: white;
-    resize: none; /* Prevent manual resizing */
-    max-height: 150px; /* Limit height growth */
-    font-family: inherit;
-    line-height: 1.5;
-    padding: 0;
-    /* padding-bottom: 4px; Để căn chỉnh với nút gửi tốt hơn */
-}
-
-/* Buttons (Send, Stop, File) */
-.action-btn {
-    padding: 8px;
-    border-radius: 8px;
-    transition: all 0.2s;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: none;
-}
-.send-btn { color: #60a5fa; /* blue-400 */ }
-.send-btn:hover { background: rgba(96, 165, 250, 0.1); color: #93c5fd; }
-.stop-btn { color: #f87171; /* red-400 */ }
-.stop-btn:hover { background: rgba(248, 113, 113, 0.1); color: #fca5a5; }
-.attach-btn { color: #94a3b8; /* slate-400 */ }
-.attach-btn:hover { background: rgba(148, 163, 184, 0.1); color: white; }
-
-
-/* Suggestion Chips */
-.suggestion-chips {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-    overflow-x: auto; /* Allow horizontal scroll on small screens */
-    padding-bottom: 5px; /* Space for scrollbar */
-}
-.suggestion-chips::-webkit-scrollbar { height: 3px; } /* Thinner scrollbar */
-.chip {
-    font-size: 11px;
-    padding: 6px 12px;
-    background: rgba(30, 41, 59, 0.8); /* bg-slate-800 */
-    border: 1px solid rgba(51, 65, 85, 1);
-    border-radius: 20px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s;
-    color: #cbd5e1; /* slate-300 */
-    flex-shrink: 0; /* Prevent shrinking */
-}
-.chip:hover {
-    background: rgba(51, 65, 85, 1);
-    border-color: #60a5fa;
-    color: white;
-}
-
-/* =========================================
-   MESSAGE BUBBLES & CONTENT STYLING
-   ========================================= */
-
-.message {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-    animation: fadeIn 0.3s ease-in-out;
-}
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-.message-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    flex-shrink: 0; /* Prevent avatar shrinking */
-}
-.message-avatar.user { background: #2563eb; /* blue-600 */ color: white; }
-.message-avatar.assistant { background: #059669; /* emerald-600 */ color: white; }
-.message-avatar.system { background: #475569; /* slate-600 */ color: #cbd5e1; }
-
-.message-content {
-    flex: 1;
-    background: rgba(30, 41, 59, 0.6); /* bg-slate-800/60 */
-    padding: 15px;
-    border-radius: 12px;
-    border: 1px solid rgba(51, 65, 85, 0.5);
-    font-size: 15px;
-    line-height: 1.6;
-    overflow-wrap: break-word; /* Prevent long text overflow */
-    max-width: 100%; /* Ensure it doesn't exceed container */
-}
-/* Màu nền khác biệt cho tin nhắn người dùng */
-.message.user .message-content {
-    background: rgba(37, 99, 235, 0.15); /* Blue tint */
-    border-color: rgba(37, 99, 235, 0.3);
-}
-
-/* Markdown Content Styling within Messages */
-.message-content p { margin-bottom: 1em; }
-.message-content p:last-child { margin-bottom: 0; }
-.message-content h1, .message-content h2, .message-content h3 {
-    font-weight: 700; color: white; margin-top: 1.5em; margin-bottom: 0.5em;
-}
-.message-content h1 { font-size: 1.5em; }
-.message-content h2 { font-size: 1.3em; }
-.message-content ul, .message-content ol {
-    margin-left: 1.5em; margin-bottom: 1em; list-style-position: outside;
-}
-.message-content li { margin-bottom: 0.5em; }
-.message-content a { color: #60a5fa; text-decoration: underline; }
-.message-content strong { color: white; font-weight: 700; }
-.message-content code {
-    background: rgba(15, 23, 42, 0.5);
-    padding: 2px 4px;
-    border-radius: 4px;
-    font-family: 'Fira Code', monospace;
-    font-size: 0.9em;
-    color: #e2e8f0;
-}
-.message-content img {
-    max-width: 100%; /* Ensure images fit */
-    height: auto;
-    border-radius: 8px;
-    margin: 10px 0;
-    border: 1px solid rgba(51, 65, 85, 0.5);
-}
-
-/* Code Blocks (Preformatted) */
-pre {
-    background: #1e293b !important; /* bg-slate-800 - force overwrite hljs */
-    padding: 15px;
-    border-radius: 8px;
-    overflow-x: auto; /* Horizontal scroll for long code */
-    margin: 1em 0;
-    border: 1px solid rgba(51, 65, 85, 0.8);
-    position: relative; /* For Copy button positioning */
-}
-pre code {
-    background: transparent !important;
-    padding: 0 !important;
-    border-radius: 0 !important;
-    font-size: 13px !important;
-    white-space: pre; /* Maintain code formatting */
-}
-
-/* Copy Code Button (Added via JS usually) */
-.copy-btn {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: rgba(51, 65, 85, 0.8);
-    color: #cbd5e1;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.2s;
-    opacity: 0; /* Hidden by default */
-}
-pre:hover .copy-btn { opacity: 1; } /* Show on hover */
-.copy-btn:hover { background: #3b82f6; color: white; }
-
-
-/* =========================================
-   MODALS & PANELS
-   ========================================= */
-
-/* Modal Overlay */
-.modal-overlay {
-    /* Các thuộc tính này thường có sẵn trong Tailwind (fixed inset-0 bg-black/80...) 
-       Nhưng giữ lại để đảm bảo hoạt động nếu không dùng Tailwind */
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8);
-    z-index: 70;
-    display: none; /* Hidden by default */
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(3px);
-}
-.modal-overlay.active { display: flex; } /* Class added by JS to show */
-
-/* Modal Content Box */
-.modal-content {
-    background: #0f172a;
-    border: 1px solid rgba(51, 65, 85, 1);
-    padding: 25px;
-    border-radius: 16px;
-    width: 500px; /* Default Width */
-    max-width: 90%; /* Ensure responsiveness */
-    max-height: 85vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-    animation: modalPopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes modalPopIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-
-/* Setting Inputs */
-.setting-input, select.setting-input {
-    width: 100%;
-    background: rgba(30, 41, 59, 0.8);
-    border: 1px solid rgba(51, 65, 85, 1);
-    padding: 10px;
-    border-radius: 8px;
-    color: white;
-    font-size: 13px;
-    outline: none;
-    transition: border-color 0.2s;
-}
-.setting-input:focus { border-color: #3b82f6; }
-input[type="range"] { accent-color: #3b82f6; }
-
-
-/* --- HISTORY PANEL STYLES (Đã tối ưu) --- */
-#historyPanel {
-    /* Đã dùng Tailwind để set vị trí (fixed top-0 left-0...), 
-       CSS này chỉ xử lý hiệu ứng trượt */
-    transform: translateX(-100%); /* Mặc định ẩn sang trái */
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Easing mượt mà hơn */
-    width: 300px; /* Chiều rộng mặc định trên PC */
-}
-
-/* Khi có class 'active' (do JS thêm vào), nó sẽ trượt ra */
-#historyPanel.active {
-    transform: translateX(0) !important;
-}
-
-
-/* =========================================
-   📱 MOBILE RESPONSIVE FIXES (DƯỚI 768px)
-   ========================================= */
-@media (max-width: 768px) {
-    /* 1. Thu gọn Header */
-    header {
-        padding: 10px 12px; /* Giảm padding */
-    }
-    /* Ẩn bớt text "Ready" và tên version dài trên mobile nếu cần */
-    #headerStatus, header h1 span {
-        display: none; 
-    }
+/* =================================================================
+   📱 MOBILE ULTRA-COMPACT MODE (Dành cho màn hình < 640px)
+   ================================================================= */
+@media (max-width: 640px) {
     
-    /* 2. Tối ưu khu vực tin nhắn */
+    /* 1. GIẢM CỠ CHỮ TOÀN BỘ */
+    body, button, input, textarea, select {
+        font-size: 13px !important; /* Chữ nhỏ lại cho vừa mắt */
+    }
+
+    /* 2. HEADER SIÊU GỌN */
+    header {
+        padding: 8px 10px !important;
+        height: 50px; /* Cố định chiều cao header */
+    }
+    header h1 {
+        font-size: 12px !important; /* Tên App nhỏ lại */
+    }
+    /* Thu nhỏ các nút bấm tròn trong Header (Chat mới, Lịch sử...) */
+    header button, header .w-7 {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 10px !important; /* Icon bên trong nhỏ lại */
+    }
+    /* Ẩn thanh cuộn của các nút toggle */
+    header .no-scrollbar {
+        gap: 6px !important; /* Giảm khoảng cách giữa các nút */
+    }
+    /* Thu nhỏ mấy cái nút gạt (Squad/Debate) */
+    .squad-mode-toggle {
+        padding: 2px 6px !important;
+        font-size: 9px !important;
+    }
+
+    /* 3. KHUNG CHAT (MESSAGES) */
     .messages-area {
-        padding: 10px 12px; /* Giảm khoảng cách lề để có nhiều chỗ đọc hơn */
+        padding: 10px !important;
     }
     .message {
-        gap: 8px; /* Giảm khoảng cách giữa avatar và tin nhắn */
-        margin-bottom: 15px;
+        gap: 8px !important;
+        margin-bottom: 12px !important;
     }
     .message-avatar {
-        width: 28px; height: 28px; font-size: 12px; /* Avatar nhỏ lại xíu */
+        width: 24px !important; 
+        height: 24px !important;
+        font-size: 10px !important;
+        margin-top: 2px; /* Căn chỉnh avatar */
     }
     .message-content {
-        padding: 10px 12px; /* Nội dung tin nhắn gọn hơn */
-        font-size: 14px; /* Font chữ vừa phải trên mobile */
+        padding: 8px 12px !important;
+        border-radius: 10px !important;
+        font-size: 13px !important;
+        line-height: 1.4 !important;
     }
+    /* Code block không được tràn màn hình */
     pre {
-        padding: 10px; /* Code block gọn hơn */
-        margin: 0.8em 0;
+        padding: 8px !important;
+        font-size: 11px !important;
+        border-radius: 6px !important;
+        max-width: 100% !important;
+        white-space: pre-wrap !important; /* Tự xuống dòng nếu code quá dài */
     }
 
-    /* 3. Tối ưu khu vực nhập liệu (Input Area) */
+    /* 4. KHUNG NHẬP LIỆU (INPUT) - QUAN TRỌNG NHẤT */
     .input-area {
-        padding: 10px 12px; /* Giảm padding tổng thể */
+        padding: 6px 8px !important; /* Sát lề hơn */
     }
     .suggestion-chips {
-        margin-bottom: 8px; /* Giảm khoảng cách chips */
+        margin-bottom: 6px !important;
+    }
+    .chip {
+        padding: 4px 8px !important;
+        font-size: 10px !important;
+        height: 24px; /* Chip thấp xuống */
+        line-height: 14px;
     }
     .input-wrapper {
-        padding: 8px 10px; /* Input field gọn gàng hơn */
+        padding: 6px 8px !important;
+        border-radius: 18px !important; /* Bo tròn kiểu Messenger */
+        align-items: center !important; /* Căn giữa dọc */
     }
     #userInput {
-        padding-bottom: 2px; /* Căn chỉnh lại text */
+        font-size: 13px !important;
+        padding: 4px 0 !important; /* Bỏ padding thừa */
+        min-height: 20px !important;
     }
-    .action-btn {
-        padding: 6px; /* Nút bấm nhỏ lại một chút */
-    }
-
-    /* 4. Tối ưu Modal Cài đặt */
-    .modal-content {
-        width: 95%; /* Chiếm gần hết chiều ngang màn hình điện thoại */
-        padding: 15px; /* Padding trong modal nhỏ lại */
-        max-height: 90vh;
+    /* Nút gửi/đính kèm nhỏ lại */
+    .input-wrapper .action-btn {
+        padding: 5px !important;
+        width: 28px !important;
+        height: 28px !important;
     }
 
-    /* 5. Tối ưu History Panel trên Mobile */
+    /* 5. HISTORY PANEL & MODAL */
     #historyPanel {
-        width: 85%; /* Không fix cứng 300px nữa, chiếm 85% màn hình */
-        max-width: 320px; /* Nhưng không quá 320px */
+        width: 80% !important; /* Chiếm 80% màn hình thay vì px cố định */
+        max-width: 300px;
+    }
+    .modal-content {
+        width: 90% !important;
+        padding: 15px !important;
+        margin: 0 auto;
+    }
+    
+    /* 6. ẨN BỚT FILE PREVIEW NẾU KHÔNG CẦN */
+    #filePreview {
+        font-size: 10px !important;
+        padding: 2px 6px !important;
     }
 }ẻ
