@@ -1,95 +1,1111 @@
-/* =========================================
-   📱 MOBILE COMPACT FIX
-   (Thu nhỏ giao diện cho vừa màn hình điện thoại)
-   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&family=Outfit:wght@500;700;900&display=swap');
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+   background-color: #0b1121;
+   margin: 0; padding: 0;
+   font-family: 'Inter', sans-serif;
+   color: #cbd5e1;
+   font-size: 15px;
+   /* KHÓA CUỘN TRANG WEB - CHỈ CUỘN KHUNG CHAT */
+   overflow: hidden; 
+   position: fixed; 
+   width: 100%; 
+   height: 100%;
+   -webkit-text-size-adjust: 100%; /* Ngăn zoom chữ trên iOS */
+   touch-action: manipulation; /* Cải thiện phản hồi cảm ứng */
+}
+
+.chat-container {
+   /* GHIM CHẶT KHUNG CHAT VÀO 4 GÓC MÀN HÌNH */
+   position: absolute;
+   top: 0; left: 0; right: 0; bottom: 0;
+   display: flex;
+   flex-direction: column;
+   height: 100%;     /* Fallback */
+   height: 100dvh;  /* Chiều cao thực tế trên Mobile */
+   overflow: hidden;
+   min-height: -webkit-fill-available; /* Fix chiều cao Safari mobile */
+}
+
+/* HEADER */
+header {
+   flex-shrink: 0;
+   background: rgba(11, 17, 33, 0.95);
+   backdrop-filter: blur(10px);
+   z-index: 10;
+   border-bottom: 1px solid #1e293b;
+   padding: 0.5rem 0; /* Thêm padding cho mobile */
+}
+
+/* --- ✨ RAG STATUS BAR NEON --- */
+.rag-bar-container {
+   background: rgba(15, 23, 42, 0.9);
+   border: 1px solid #334155;
+   border-radius: 8px;
+   padding: 8px 12px;
+   margin: 8px 0.5rem; /* Thay đổi margin để phù hợp với padding mới của header */
+   box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
+   border-left: 3px solid #3b82f6;
+   animation: slideIn 0.3s ease-out;
+   font-size: 0.9em; /* Giảm kích thước chữ trên mobile */
+}
+
+/* Thanh tiến trình phát sáng */
+.rag-progress-track {
+   background: #1e293b;
+   height: 4px; /* Giảm chiều cao trên mobile */
+   border-radius: 10px;
+   overflow: hidden;
+   margin-top: 4px; /* Giảm margin */
+   position: relative;
+}
+
+.rag-progress-fill {
+   height: 100%;
+   background: linear-gradient(90deg, #3b82f6, #8b5cf6, #2dd4bf);
+   background-size: 200% 200%;
+   width: 0%;
+   box-shadow: 0 0 10px #3b82f6; /* Glow effect */
+   transition: width 0.1s linear;
+   animation: neon-flow 2s infinite linear; /* Tái sử dụng animation có sẵn */
+}
+
+/* Chữ nhấp nháy */
+.rag-text-glow {
+   color: #60a5fa;
+   text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+   font-family: 'JetBrains Mono', monospace;
+   font-size: 11px;
+}
+
+@keyframes slideIn {
+   from { opacity: 0; transform: translateY(5px); }
+   to { opacity: 1; transform: translateY(0); }
+}
+
+/* KHUNG CHAT */
+.messages-area {
+   flex: 1;
+   overflow-y: auto;
+   padding: 0.75rem 0.5rem; /* Giảm padding trên mobile */
+   width: 100%;
+   scroll-behavior: auto; 
+   min-height: 0;
+   -webkit-overflow-scrolling: touch;
+   padding-bottom: 20px;
+   overscroll-behavior-y: contain; 
+}
+
+.messages-area::-webkit-scrollbar { width: 3px; } /* Giảm độ rộng thanh cuộn trên mobile */
+.messages-area::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+.message { margin-bottom: 1.5rem; animation: fadeIn 0.3s ease-out; } /* Giảm margin */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.user-message { display: flex; justify-content: flex-end; }
+.user-bubble {
+   background: linear-gradient(135deg, #2563eb, #1d4ed8);
+   color: white;
+   padding: 0.6rem 0.9rem; /* Giảm padding trên mobile */
+   border-radius: 1.2rem 1.2rem 0 1.2rem;
+   max-width: 85%;
+   font-size: 14px; /* Giảm kích thước chữ */
+   box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+   word-wrap: break-word;
+   overflow-wrap: break-word;
+   line-height: 1.4; /* Tăng khoảng cách dòng cho dễ đọc */
+}
+
+/* AI CARD & STYLING */
+.ai-response-group {
+   display: flex; flex-direction: column; gap: 12px; /* Giảm gap trên mobile */
+   width: 100%;
+}
+
+.ai-card {
+   background: #151e32;
+   border: 1px solid #334155;
+   border-radius: 10px; /* Giảm border-radius trên mobile */
+   overflow: hidden;
+   transition: border-color 0.3s;
+}
+.ai-card:hover { border-color: #475569; }
+
+.ai-header {
+   background: #0f172a;
+   padding: 5px 10px; /* Giảm padding trên mobile */
+   font-size: 10px; /* Giảm kích thước chữ */
+   color: #94a3b8;
+   border-bottom: 1px solid #1e293b;
+   display: flex; justify-content: space-between; align-items: center;
+}
+.ai-model-name { font-weight: bold; color: #38bdf8; display: flex; align-items: center; gap: 5px; }
+
+.ai-bubble {
+   padding: 0.9rem; /* Giảm padding trên mobile */
+   color: #e2e8f0;
+   line-height: 1.6; /* Điều chỉnh line-height cho mobile */
+   letter-spacing: 0.015em;
+   font-weight: 300;
+   font-size: 14px; /* Giảm kích thước chữ */
+   word-wrap: break-word;
+   overflow-wrap: break-word; /* Quan trọng để không vỡ layout */
+}
+
+/* --- ✨ NEON CYBERPUNK STYLES (UPGRADE) --- */
+/* --- PYTHON TERMINAL & PLOT STYLES --- */
+.code-action-bar {
+   display: flex; justify-content: flex-end; gap: 8px; /* Giảm gap trên mobile */
+   background: #1e293b; padding: 4px 8px; /* Giảm padding trên mobile */
+   border-top: 1px solid #334155; border-radius: 0 0 8px 8px;
+   margin-top: -1em; margin-bottom: 1em; /* Dính liền với khung code */
+   font-size: 0.9em; /* Giảm kích thước chữ */
+}
+.run-btn {
+   font-size: 11px; font-weight: bold; color: #a5f3fc; cursor: pointer; /* Giảm kích thước chữ */
+   display: flex; align-items: center; gap: 4px; /* Giảm gap */
+   transition: 0.3s;
+   padding: 4px 8px; /* Thêm padding cho dễ chạm */
+   border-radius: 4px;
+}
+.run-btn:hover { color: #22d3ee; text-shadow: 0 0 8px #22d3ee; }
+
+.python-output {
+   margin-top: 8px; padding: 8px; /* Giảm margin và padding */
+   border-radius: 8px;
+   background: #000; border: 1px dashed #334155;
+   font-family: 'JetBrains Mono', monospace; font-size: 12px; /* Giảm kích thước chữ */
+   color: #fff;
+   display: none; /* Ẩn khi chưa có kết quả */
+}
+.python-output.active { display: block; animation: fadeIn 0.3s; }
+.python-output img { 
+   max-width: 100%; 
+   height: auto;
+   display: block;
+   margin: 0 auto;
+   border-radius: 6px; 
+   border: 1px solid #334155; 
+   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+}
+
+/* 1. Headers: Màu chuyển động & Phát sáng */
+@keyframes neon-flow {
+   0% { background-position: 0% 50%; }
+   50% { background-position: 100% 50%; }
+   100% { background-position: 0% 50%; }
+}
+
+.ai-bubble h1, .ai-bubble h2, .ai-bubble h3 { 
+   font-family: 'Outfit', sans-serif; 
+   letter-spacing: -0.02em;
+   font-weight: 800;
+   margin-top: 1em; /* Giảm margin */
+   margin-bottom: 0.5em; /* Giảm margin */
+   background: linear-gradient(270deg, #3b82f6, #8b5cf6, #f472b6, #3b82f6);
+   background-size: 300% 300%;
+   -webkit-background-clip: text;
+   -webkit-text-fill-color: transparent;
+   animation: neon-flow 6s ease infinite;
+   filter: drop-shadow(0 0 5px rgba(139, 92, 246, 0.3));
+}
+
+.ai-bubble h1 { 
+   font-size: 1.5em; /* Giảm kích thước chữ trên mobile */
+   border-bottom: 2px solid #334155; 
+   padding-bottom: 0.3em;
+   border-image: linear-gradient(to right, #3b82f6, #f472b6, transparent) 1;
+}
+
+.ai-bubble h2 { 
+   font-size: 1.3em; /* Giảm kích thước chữ trên mobile */
+}
+
+.ai-bubble h3 { 
+   font-size: 1.1em; /* Giảm kích thước chữ trên mobile */
+}
+
+/* 2. Text Emphasis: Tô đậm & Nghiêng phát sáng */
+.ai-bubble strong { 
+   color: #facc15; 
+   font-weight: 700;
+   text-shadow: 0 0 10px rgba(250, 204, 21, 0.4);
+}
+.ai-bubble em { 
+   color: #f472b6; 
+   font-style: italic;
+   text-shadow: 0 0 8px rgba(244, 114, 182, 0.4);
+}
+.ai-bubble u { text-decoration-color: #38bdf8; text-decoration-thickness: 2px; }
+
+/* 3. Lists */
+.ai-bubble ul, .ai-bubble ol { 
+   padding-left: 1.2em; /* Giảm padding */
+   margin: 0.6em 0; /* Giảm margin */
+   color: #cbd5e1; 
+}
+.ai-bubble ul li::marker { color: #f472b6; }
+.ai-bubble ol li::marker { color: #38bdf8; font-weight: bold; }
+
+/* 4. Blockquotes: Kính trong suốt (Glassmorphism) */
+.ai-bubble blockquote { 
+   border-left: 4px solid #a855f7;
+   background: linear-gradient(90deg, rgba(168, 85, 247, 0.1), transparent);
+   padding: 0.8em; /* Giảm padding */
+   margin: 0.8em 0; /* Giảm margin */
+   border-radius: 0 10px 10px 0; /* Giảm border-radius */
+   color: #e2e8f0; 
+   box-shadow: inset 10px 0 20px -10px rgba(168, 85, 247, 0.2);
+   font-size: 0.95em; /* Giảm kích thước chữ */
+}
+
+/* 5. Inline Code: Nền tối + Viền neon */
+.ai-bubble p code, .ai-bubble li code {
+   font-family: 'JetBrains Mono', monospace;
+   background: rgba(15, 23, 42, 0.8); 
+   color: #2dd4bf;
+   border: 1px solid rgba(45, 212, 191, 0.3);
+   padding: 1px 4px; /* Giảm padding */
+   border-radius: 4px; /* Giảm border-radius */
+   font-size: 0.85em; /* Giảm kích thước chữ */
+   box-shadow: 0 0 5px rgba(45, 212, 191, 0.1);
+}
+
+/* 6. Links */
+.ai-bubble a { 
+   color: #38bdf8;
+   text-decoration: none; 
+   border-bottom: 1px dashed #38bdf8; 
+   transition: all 0.2s;
+   word-break: break-all; /* Ngắt link dài trên mobile */
+}
+.ai-bubble a:hover { 
+   color: #fff;
+   background: #0ea5e9;
+   padding: 0 2px; /* Giảm padding */
+   border-radius: 4px;
+   box-shadow: 0 0 10px #0ea5e9;
+   border-bottom: none;
+}
+
+/* --- FIX LỖI ĐƠ CẢM ỨNG & ÉP SCROLL (V2) --- */
+
+/* 1. Cấu hình chung cho Code & Table */
+.ai-bubble pre, 
+.ai-bubble table {
+   background: #282c34; 
+   border-radius: 0.5rem;
+   border: 1px solid #475569;
+   display: block;
+   width: 100%;
+   overflow-x: auto !important;
+   -webkit-overflow-scrolling: touch;
+   margin: 0.8em 0; /* Giảm margin */
+}
+
+/* 2. Style riêng cho Code block */
+.ai-bubble pre {
+   margin: 0.8em 0; /* Giảm margin */
+   padding: 0.8em; /* Giảm padding */
+   position: relative;
+   font-size: 0.85em; /* Giảm kích thước chữ */
+}
+
+/* Style cho Text Art / Neon Code */
+.ai-bubble pre code.language-text {
+   color: #a5f3fc !important;
+   text-shadow: 0 0 6px #0891b2;
+   font-weight: 700;
+   line-height: 1.1;
+}
+
+.ai-bubble pre code {
+   font-family: 'JetBrains Mono', monospace;
+   font-size: 12px;
+   background: transparent;
+   padding: 0;
+   color: inherit; 
+   white-space: pre;
+}
+
+/* 3. Style riêng cho Table */
+.ai-bubble table {
+   border-collapse: collapse; 
+   margin: 0.8em 0; /* Giảm margin */
+   font-size: 0.9em; /* Giảm kích thước chữ */
+}
+.ai-bubble th, .ai-bubble td { 
+   border: 1px solid #334155; 
+   padding: 8px; /* Giảm padding */
+   text-align: left; 
+   white-space: nowrap; 
+   font-size: 0.9em; /* Giảm kích thước chữ */
+}
+.ai-bubble th { 
+   background: #1e293b; 
+   color: #38bdf8; 
+   font-size: 0.95em; /* Giảm kích thước chữ */
+   padding: 10px 8px; /* Điều chỉnh padding */
+}
+
+/* 🔥 CẤP CỨU MOBILE: Ép chiều rộng khung code nhỏ hơn màn hình 🔥 */
 @media (max-width: 768px) {
-    /* 1. Giảm cỡ chữ cơ bản xuống 13px cho gọn */
-    body, .ai-bubble, .user-bubble, textarea {
-        font-size: 13px !important;
-        line-height: 1.4 !important;
-    }
+   .ai-bubble pre,
+   .ai-bubble table {
+       max-width: calc(100vw - 40px) !important; /* Giảm khoảng trừ để phù hợp hơn */
+       display: block;
+   }
+   
+   /* Điều chỉnh thêm cho table trên mobile rất nhỏ */
+   @media (max-width: 480px) {
+       .ai-bubble table {
+           font-size: 0.8em;
+       }
+       .ai-bubble th, .ai-bubble td {
+           padding: 6px 4px;
+       }
+   }
+}
 
-    /* 2. Thu gọn Header & Các nút chế độ (Squad/Debate) */
-    header {
-        padding: 4px 6px !important;
-    }
-    header h1 {
-        font-size: 12px !important;
-    }
-    .squad-mode-toggle {
-        padding: 2px 5px !important;
-        gap: 3px !important;
-        border-radius: 6px !important;
-    }
-    /* Thu nhỏ công tắc gạt */
-    .toggle-switch {
-        width: 22px !important;
-        height: 12px !important;
-    }
-    .toggle-switch::after {
-        width: 8px !important;
-        height: 8px !important;
-        top: 2px !important;
-        left: 2px !important;
-    }
-    /* Chỉnh lại vị trí khi gạt nút nhỏ */
-    .squad-mode-toggle.active .toggle-switch::after,
-    .squad-mode-toggle.debate-active .toggle-switch::after,
-    .synthesis-active .toggle-switch::after {
-        transform: translateX(10px) !important;
-    }
+/* SUGGESTION CHIPS */
+.suggestion-chips { 
+   display: flex; 
+   gap: 6px; /* Giảm gap trên mobile */
+   overflow-x: auto; 
+   padding: 0 0.5rem 0.5rem 0.5rem; /* Điều chỉnh padding */
+   scrollbar-width: none; 
+   margin-top: 0.5rem;
+}
+.suggestion-chips::-webkit-scrollbar { display: none; }
+.chip {
+   flex-shrink: 0; 
+   background: #1e293b; 
+   color: #94a3b8; 
+   border: 1px solid #334155;
+   padding: 5px 10px; /* Giảm padding */
+   border-radius: 16px; /* Giảm border-radius */
+   font-size: 11px; /* Giảm kích thước chữ */
+   cursor: pointer; 
+   transition: 0.2s;
+   white-space: nowrap;
+}
+.chip:hover { background: #334155; color: #fff; border-color: #60a5fa; }
 
-    /* 3. Thu gọn bong bóng chat & khoảng cách */
-    .messages-area {
-        padding: 10px !important;
-    }
-    .message {
-        margin-bottom: 15px !important;
-    }
-    .user-bubble {
-        padding: 8px 12px !important;
-        border-radius: 12px 12px 0 12px !important;
-        max-width: 88% !important;
-    }
-    .ai-bubble {
-        padding: 8px 10px !important;
-    }
-    
-    /* 4. Ép khung code không bị tràn màn hình */
-    .ai-bubble pre, .ai-bubble table {
-        max-width: calc(100vw - 40px) !important;
-        font-size: 11px !important; /* Code nhỏ lại để đỡ phải cuộn ngang nhiều */
-    }
+/* INPUT AREA */
+.input-area {
+   flex-shrink: 0; 
+   padding: 0.5rem 0.5rem 0.7rem 0.5rem; /* Giảm padding trên mobile */
+   background: #0b1121; 
+   border-top: 1px solid #1e293b; 
+   z-index: 20;
+}
 
-    /* 5. Thu gọn thanh nhập liệu (Input Bar) */
-    .input-area {
-        padding: 4px 6px 8px 6px !important;
-    }
-    .input-wrapper {
-        min-height: 38px !important;
-        padding: 2px !important;
-    }
-    textarea {
-        padding: 8px !important;
-        min-height: 38px !important;
-        height: 38px; /* Mặc định thấp thôi */
-    }
-    /* Nút gửi/đính kèm nhỏ lại */
-    .action-btn {
-        width: 30px !important;
-        height: 30px !important;
-        margin-bottom: 2px !important;
-    }
-    .action-btn i {
-        font-size: 14px !important;
-    }
+.squad-mode-toggle {
+   display: flex; 
+   align-items: center; 
+   gap: 6px; /* Giảm gap */
+   font-size: 10px; /* Giảm kích thước chữ */
+   color: #94a3b8; 
+   cursor: pointer; 
+   user-select: none;
+   padding: 3px 6px; /* Giảm padding */
+   border-radius: 10px; /* Giảm border-radius */
+   margin-bottom: 0.5rem;
+}
+.toggle-switch {
+   position: relative; 
+   width: 30px; /* Giảm kích thước */
+   height: 16px; /* Giảm kích thước */
+   background: #334155; 
+   border-radius: 15px; 
+   transition: 0.3s;
+}
+.toggle-switch::after {
+   content: ''; 
+   position: absolute; 
+   top: 2px; 
+   left: 2px; 
+   width: 12px; /* Giảm kích thước */
+   height: 12px; /* Giảm kích thước */
+   background: white; 
+   border-radius: 50%; 
+   transition: 0.3s;
+}
+.squad-mode-toggle.active .toggle-switch { background: #8b5cf6; }
+.squad-mode-toggle.active .toggle-switch::after { transform: translateX(14px); }
+.squad-mode-toggle.active span { color: #a78bfa; font-weight: bold; }
 
-    /* 6. Gợi ý (Chips) nhỏ lại */
-    .suggestion-chips {
-        margin-bottom: 4px !important;
-    }
-    .chip {
-        padding: 4px 8px !important;
-        font-size: 10px !important;
-    }
+.input-wrapper {
+   background: #1e293b; 
+   border-radius: 20px; /* Giảm border-radius */
+   border: 1px solid #334155;
+   display: flex; 
+   align-items: flex-end; 
+   padding: 5px; /* Giảm padding */
+   transition: border-color 0.2s;
+   min-height: 44px; /* Đảm bảo đủ lớn để chạm */
+}
+.input-wrapper:focus-within { 
+   border-color: #3b82f6; 
+   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); 
+}
+
+textarea {
+   width: 100%; 
+   background: transparent; 
+   border: none; 
+   outline: none; 
+   color: white;
+   padding: 8px 10px; /* Giảm padding */
+   resize: none; 
+   max-height: 120px; 
+   min-height: 36px; /* Giảm min-height */
+   font-size: 15px; /* Giữ nguyên kích thước chữ cho input */
+   line-height: 1.4;
+   font-family: 'Inter', sans-serif;
+}
+
+.action-btn {
+   background: transparent; 
+   color: #94a3b8; 
+   width: 38px; /* Tăng kích thước cho dễ chạm */
+   height: 38px; /* Tăng kích thước cho dễ chạm */
+   border-radius: 50%; 
+   display: flex; 
+   align-items: center; 
+   justify-content: center;
+   margin-bottom: 3px; 
+   cursor: pointer; 
+   border: none; 
+   transition: 0.2s;
+   flex-shrink: 0;
+}
+.action-btn:hover { color: #e2e8f0; background: #334155; }
+.send-btn { color: #3b82f6; }
+.send-btn:hover { background: #2563eb; color: white; }
+.stop-btn { color: #ef4444; display: none; }
+.stop-btn:hover { background: #dc2626; color: white; }
+
+/* MODAL */
+.modal-overlay {
+   position: fixed; 
+   top: 0; 
+   left: 0; 
+   width: 100%; 
+   height: 100%;
+   background: rgba(0, 0, 0, 0.85); 
+   backdrop-filter: blur(5px);
+   display: none; 
+   justify-content: center; 
+   align-items: center; 
+   z-index: 50;
+}
+.modal-overlay.active { display: flex; }
+.modal-content {
+   background: #151e32; 
+   padding: 1.2rem; /* Giảm padding trên mobile */
+   border-radius: 1rem; 
+   width: 95%; /* Tăng % width trên mobile */
+   max-width: 500px;
+   border: 1px solid #334155; 
+   box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+   max-height: 90vh; 
+   overflow-y: auto;
+   margin: 1rem; /* Thêm margin để không sát cạnh màn hình */
+}
+.setting-input {
+   width: 100%; 
+   background: #0b1121; 
+   border: 1px solid #334155;
+   color: #e2e8f0; 
+   padding: 10px; 
+   border-radius: 8px; 
+   font-size: 14px;
+   min-height: 44px; /* Đảm bảo đủ lớn để chạm */
+}
+.setting-input:focus { border-color: #3b82f6; outline: none; }
+
+/* Model List */
+.model-list-container {
+   max-height: 150px; 
+   overflow-y: auto; 
+   border: 1px solid #334155;
+   border-radius: 8px; 
+   padding: 8px; 
+   background: #0b1121; 
+   margin-bottom: 10px;
+}
+.model-item {
+   display: flex; 
+   justify-content: space-between; 
+   align-items: center;
+   padding: 8px; 
+   background: #1e293b; 
+   margin-bottom: 5px; 
+   border-radius: 6px; 
+   font-size: 13px;
+   min-height: 44px; /* Đảm bảo đủ lớn để chạm */
+}
+.remove-model-btn { 
+   color: #ef4444; 
+   cursor: pointer; 
+   padding: 6px; /* Tăng padding cho dễ chạm */
+   border-radius: 4px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 32px;
+   height: 32px;
+}
+
+/* --- MOBILE RESPONSIVE FIXES (ĐÃ THÊM MỚI) --- */
+@media (max-width: 768px) {
+   .messages-area { 
+      padding: 0.5rem; /* Giảm lề trên mobile */
+   } 
+   .user-bubble { 
+      max-width: 90%; 
+      padding: 0.6rem 0.8rem; 
+      font-size: 14px; 
+   }
+   .ai-bubble { 
+      padding: 0.8rem; 
+      font-size: 14px; 
+   }
+   .ai-bubble pre { 
+      font-size: 11px; /* Giảm kích thước chữ code block */
+      padding: 0.6em; 
+   }
+   .input-area { 
+      padding: 0.5rem; 
+   }
+   
+   /* Tinh chỉnh header/toggle cho gọn */
+   .squad-mode-toggle { 
+      font-size: 10px; 
+   }
+   .toggle-switch { 
+      width: 28px; 
+      height: 16px; 
+   }
+   .toggle-switch::after { 
+      width: 12px; 
+      height: 12px; 
+   }
+   .squad-mode-toggle.active .toggle-switch::after { 
+      transform: translateX(12px); 
+   }
+
+   /* File preview gọn hơn */
+   #filePreview span { 
+      max-width: 100px; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
+      display: inline-block; 
+      vertical-align: bottom; 
+   }
+   
+   /* Điều chỉnh modal cho mobile nhỏ hơn */
+   .modal-content {
+      padding: 1rem;
+      width: 92%;
+      margin: 0.5rem;
+   }
+   
+   /* Điều chỉnh padding cho các phần tử trong modal */
+   .modal-content .setting-input,
+   .modal-content .model-item {
+      min-height: 42px;
+   }
+}
+
+/* Thêm breakpoint cho màn hình rất nhỏ */
+@media (max-width: 480px) {
+   body {
+      font-size: 14px;
+   }
+   
+   .messages-area {
+      padding: 0.4rem;
+   }
+   
+   .user-bubble {
+      max-width: 92%;
+      padding: 0.5rem 0.7rem;
+      font-size: 13px;
+   }
+   
+   .ai-bubble {
+      padding: 0.7rem;
+      font-size: 13px;
+      line-height: 1.5;
+   }
+   
+   .ai-bubble h1 {
+      font-size: 1.3em;
+   }
+   
+   .ai-bubble h2 {
+      font-size: 1.2em;
+   }
+   
+   .ai-bubble h3 {
+      font-size: 1.1em;
+   }
+   
+   .input-wrapper {
+      border-radius: 18px;
+      padding: 4px;
+   }
+   
+   textarea {
+      font-size: 14px;
+      padding: 7px 9px;
+   }
+   
+   .action-btn {
+      width: 36px;
+      height: 36px;
+   }
+   
+   .suggestion-chips {
+      padding: 0 0.4rem 0.4rem 0.4rem;
+   }
+   
+   .chip {
+      padding: 4px 8px;
+      font-size: 10px;
+   }
+}
+
+/* --- DEBATE MODE STYLES --- */
+.squad-mode-toggle.debate-active .toggle-switch { 
+   background: #ef4444; 
+   box-shadow: 0 0 10px #ef4444; 
+}
+.squad-mode-toggle.debate-active .toggle-switch::after { 
+   transform: translateX(14px); 
+   background: #fff; 
+}
+.debate-active-border { 
+   border: 1px solid #ef4444 !important; 
+   box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); 
+}
+
+/* --- CINEMA MODE STYLES --- */
+.cinema-title {
+   text-align: center;
+   background: linear-gradient(90deg, #000, #1a1a2e, #000);
+   padding: 8px; /* Giảm padding trên mobile */
+   border-radius: 8px;
+   border: 1px solid #475569;
+   margin-bottom: 12px; /* Giảm margin */
+   position: relative;
+   font-size: 0.9em; /* Giảm kích thước chữ */
+}
+
+.cinema-title h3 {
+   color: #fbbf24;
+   font-family: 'Outfit', sans-serif;
+   font-size: 14px; /* Giảm kích thước chữ trên mobile */
+   margin: 0;
+   letter-spacing: 1px; /* Giảm letter-spacing */
+   text-transform: uppercase;
+}
+
+.film-strip {
+   height: 2px; /* Giảm chiều cao trên mobile */
+   background: repeating-linear-gradient(
+       90deg,
+       transparent,
+       transparent 8px, /* Giảm khoảng cách */
+       #fbbf24 8px,
+       #fbbf24 16px
+   );
+   flex: 1;
+   margin: 0 8px; /* Giảm margin */
+}
+
+.topic-banner {
+   background: rgba(220, 38, 38, 0.2);
+   border: 2px solid #ef4444;
+   padding: 10px; /* Giảm padding trên mobile */
+   text-align: center;
+   font-size: 16px; /* Giảm kích thước chữ */
+   font-weight: bold;
+   color: #fecaca;
+   border-radius: 8px;
+   margin: 8px 0; /* Giảm margin */
+   font-family: 'Outfit', sans-serif;
+   letter-spacing: 0.5px; /* Giảm letter-spacing */
+}
+
+.scene-desc {
+   font-size: 10px; /* Giảm kích thước chữ */
+   color: #94a3b8;
+   text-align: center;
+   margin-bottom: 16px; /* Giảm margin */
+   font-style: italic;
+   line-height: 1.4;
+}
+
+.cinema-screen {
+   border: 2px solid #334155; /* Giảm border width */
+   border-radius: 8px; /* Giảm border-radius */
+   padding: 12px; /* Giảm padding */
+   margin-bottom: 16px; /* Giảm margin */
+   background: #0f172a;
+   position: relative;
+   overflow: hidden;
+}
+
+.cinema-screen::before {
+   content: '';
+   position: absolute;
+   top: 0;
+   left: 0;
+   right: 0;
+   height: 1px; /* Giảm chiều cao */
+   background: linear-gradient(90deg, transparent, #60a5fa, transparent);
+}
+
+.character-intro {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: 8px 0; /* Giảm padding */
+   border-bottom: 1px dashed #475569;
+   margin-bottom: 8px; /* Giảm margin */
+   font-size: 0.9em; /* Giảm kích thước chữ */
+}
+
+.character-a {
+   color: #60a5fa;
+   font-weight: bold;
+   font-size: 11px; /* Giảm kích thước chữ */
+}
+
+.character-b {
+   color: #f87171;
+   font-weight: bold;
+   font-size: 11px; /* Giảm kích thước chữ */
+}
+
+.vs {
+   font-size: 18px; /* Giảm kích thước chữ */
+   color: #fbbf24;
+   animation: pulse 1.5s infinite;
+}
+
+.take-number {
+   background: rgba(0, 0, 0, 0.3);
+   padding: 1px 5px; /* Giảm padding */
+   border-radius: 10px;
+   border: 1px solid #475569;
+   font-size: 0.8em; /* Giảm kích thước chữ */
+}
+
+.film-ending {
+   text-align: center;
+   padding: 16px; /* Giảm padding */
+}
+
+.credits-roll {
+   animation: scrollUp 10s linear;
+}
+
+.credits {
+   margin: 12px 0; /* Giảm margin */
+   font-size: 11px; /* Giảm kích thước chữ */
+   color: #cbd5e1;
+}
+
+.credits div {
+   margin: 4px 0; /* Giảm margin */
+   padding: 2px 0; /* Giảm padding */
+   border-bottom: 1px dotted #334155;
+}
+
+.review {
+   margin-top: 16px; /* Giảm margin */
+   padding: 8px; /* Giảm padding */
+   background: rgba(139, 92, 246, 0.1);
+   border-radius: 8px;
+   color: #a78bfa;
+   font-size: 13px; /* Giảm kích thước chữ */
+   font-weight: bold;
+}
+
+@keyframes pulse {
+   0%, 100% { opacity: 1; transform: scale(1); }
+   50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+@keyframes scrollUp {
+   from { transform: translateY(50px); opacity: 0; }
+   to { transform: translateY(0); opacity: 1; }
+}
+
+/* Highlight dialogue bubbles for short lines */
+.ai-card .ai-bubble {
+   font-size: 15px; /* Điều chỉnh cho mobile */
+   font-weight: 500;
+   line-height: 1.4;
+   padding: 10px 12px; /* Điều chỉnh padding */
+}
+
+/* Cinema mode specific */
+.ai-card[cinema-mode] .ai-bubble {
+   background: rgba(255, 255, 255, 0.05);
+   border-radius: 8px;
+   border-left: 3px solid; /* Giảm border width */
+   animation: typewriter 0.3s steps(20);
+}
+
+@keyframes typewriter {
+   from { opacity: 0; transform: translateY(5px); }
+   to { opacity: 1; transform: translateY(0); }
+}      
+
+/* Thêm vào trong thẻ <style> */
+
+/* Trạng thái Input khi ở chế độ Debate */
+.input-wrapper.debate-mode-active {
+   border-color: #ef4444 !important;
+   background: rgba(239, 68, 68, 0.05);
+   box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+}
+
+/* Khi click vào input ở chế độ Debate */
+.input-wrapper.debate-mode-active:focus-within {
+   box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+   border-color: #f87171 !important;
+}
+
+/* Đổi màu icon gửi thành màu đỏ cho hợp tông */
+.input-wrapper.debate-mode-active .send-btn {
+   color: #ef4444;
+}
+.input-wrapper.debate-mode-active .send-btn:hover {
+   background: #ef4444;
+   color: white;
+}
+   
+/* --- REFEREE JUDGE STYLES (TRỌNG TÀI) --- */
+.referee-card {
+   border: 2px solid #fbbf24 !important;
+   background: linear-gradient(180deg, rgba(251, 191, 36, 0.05) 0%, rgba(0,0,0,0) 100%) !important;
+   margin-top: 25px; /* Giảm margin trên mobile */
+   position: relative;
+   overflow: hidden;
+   animation: slideUpReferee 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Hiệu ứng quét sáng bóng */
+.referee-card::before {
+   content: '';
+   position: absolute;
+   top: 0; left: -100%;
+   width: 50%; height: 100%;
+   background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.2), transparent);
+   animation: shine 3s infinite;
+}
+
+.referee-header {
+   background: #451a03;
+   border-bottom: 1px solid #fbbf24;
+   color: #fbbf24;
+   padding: 8px 10px; /* Giảm padding trên mobile */
+   font-family: 'Outfit', sans-serif;
+   text-transform: uppercase;
+   font-weight: 900;
+   letter-spacing: 1px; /* Giảm letter-spacing */
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px; /* Giảm gap */
+   font-size: 0.9em; /* Giảm kích thước chữ */
+}
+
+/* Animation hiển thị */
+@keyframes slideUpReferee {
+   from { transform: translateY(50px); opacity: 0; }
+   to { transform: translateY(0); opacity: 1; }
+}
+@keyframes shine {
+   0% { left: -100%; }
+   20% { left: 200%; }
+   100% { left: 200%; }
+}
+
+/* --- SYNTHESIS MODE STYLES --- */
+.synthesis-active .toggle-switch { 
+   background: #fbbf24; 
+   box-shadow: 0 0 10px #fbbf24; 
+}
+.synthesis-active .toggle-switch::after { 
+   transform: translateX(14px); 
+   background: #000; 
+}
+
+.synthesis-card {
+   border: 1px solid #fbbf24 !important;
+   background: linear-gradient(135deg, rgba(251, 191, 36, 0.05), rgba(0,0,0,0.2));
+   box-shadow: 0 0 20px rgba(251, 191, 36, 0.1);
+}
+.synthesis-step {
+   font-size: 10px; /* Giảm kích thước chữ */
+   color: #94a3b8; 
+   border-left: 2px solid #334155;
+   padding-left: 8px; /* Giảm padding */
+   margin: 4px 0; /* Giảm margin */
+   opacity: 0.7;
+}
+.synthesis-step.active {
+   color: #fbbf24; 
+   border-color: #fbbf24; 
+   opacity: 1; 
+   font-weight: bold;
+   animation: pulse 1s infinite;
+}
+.raw-results-container {
+   display: flex; 
+   gap: 4px; /* Giảm gap */
+   overflow-x: auto; 
+   padding-bottom: 5px; 
+   margin-bottom: 10px; 
+   opacity: 0.6;
+}
+.raw-card {
+   min-width: 180px; /* Giảm min-width */
+   font-size: 9px; /* Giảm kích thước chữ */
+   background: #000; 
+   border: 1px solid #334155; 
+   padding: 4px; /* Giảm padding */
+   border-radius: 4px; 
+   max-height: 90px; /* Giảm max-height */
+   overflow: hidden;
+}
+
+/* CSS cho Panel Lịch sử trượt mượt mà */
+#historyPanel {
+   transform: translateX(-100%); /* Mặc định ẩn sang trái */
+   transition: transform 0.3s ease-in-out;
+   width: 85%; /* Giảm width trên mobile */
+   max-width: 300px;
+}
+#historyPanel.active {
+   transform: translateX(0); /* Khi có class active thì trượt ra */
+}
+
+/* Tùy chỉnh thanh cuộn cho danh sách lịch sử */
+.custom-scrollbar::-webkit-scrollbar { 
+   width: 3px; /* Giảm độ rộng trên mobile */
+}
+.custom-scrollbar::-webkit-scrollbar-track { 
+   background: #0f172a; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb { 
+   background: #334155; 
+   border-radius: 2px; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { 
+   background: #475569; 
+}
+
+/* Thêm style cho lịch sử chat trên mobile */
+.history-item {
+   padding: 12px 15px; /* Điều chỉnh padding */
+   border-bottom: 1px solid #1e293b;
+   cursor: pointer;
+   transition: background 0.2s;
+   font-size: 14px; /* Giảm kích thước chữ */
+   line-height: 1.4;
+   min-height: 44px; /* Đảm bảo đủ lớn để chạm */
+   display: flex;
+   align-items: center;
+}
+.history-item:hover {
+   background: #1e293b;
+}
+
+/* Điều chỉnh các nút trong history panel cho mobile */
+.history-panel-header {
+   padding: 15px; /* Điều chỉnh padding */
+   border-bottom: 1px solid #1e293b;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   font-size: 16px; /* Giảm kích thước chữ */
+}
+
+.history-panel-header button {
+   padding: 8px 12px; /* Điều chỉnh padding */
+   border-radius: 6px;
+   min-height: 36px; /* Đảm bảo đủ lớn để chạm */
+}
+
+/* Điều chỉnh cho các màn hình rất nhỏ */
+@media (max-width: 360px) {
+   #historyPanel {
+      width: 90%;
+   }
+   
+   .history-item {
+      padding: 10px 12px;
+      font-size: 13px;
+   }
+   
+   .history-panel-header {
+      padding: 12px;
+      font-size: 15px;
+   }
+}
+
+/* Cải thiện hiệu ứng tap cho tất cả các phần tử có thể tương tác */
+.chip,
+.action-btn,
+.model-item,
+.history-item,
+.run-btn,
+.remove-model-btn,
+.squad-mode-toggle {
+   -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Đảm bảo không có phần tử nào bị tràn trên mobile */
+* {
+   max-width: 100%;
+}
+
+/* Cải thiện hiệu suất cuộn trên mobile */
+.messages-area,
+.model-list-container,
+.custom-scrollbar {
+   -webkit-overflow-scrolling: touch;
+   overflow-scrolling: touch;
+}
+
+/* Ngăn chặn zoom trên input khi focus trên iOS */
+@media screen and (max-width: 768px) {
+   textarea,
+   .setting-input {
+      font-size: 16px; /* Ngăn chặn zoom trên iOS */
+   }
+   
+   /* Đảm bảo các input không bị phóng to trên iOS */
+   select,
+   textarea,
+   input[type="text"],
+   input[type="search"],
+   input[type="password"],
+   input[type="email"],
+   input[type="tel"] {
+      font-size: 16px;
+   }
 }
