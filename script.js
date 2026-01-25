@@ -1,12 +1,4 @@
-// --- LICENSE SYSTEM CONFIGURATION ---
-const LICENSE_CONFIG = {
-  FREE_CHAT_LIMIT: 5,          // 5 lượt chat single free
-  FREE_FEATURE_LIMIT: 2,       // 2 lượt mỗi tính năng đặc biệt (Debate, Synthesis, Vision, Squad)
-  SUPABASE_URL: 'https://YOUR_PROJECT.supabase.co', // ⚠️ THAY BẰNG URL CỦA BẠN
-  SUPABASE_KEY: 'YOUR_ANON_KEY' // ⚠️ THAY BẰNG ANON KEY CỦA BẠN
-};
-
-// --- 🛠️ DYNAMIC RESOURCE MANAGER (Lazy Load) ---
+﻿// --- 🛠️ DYNAMIC RESOURCE MANAGER (Lazy Load) ---
 // Danh sách "Thợ" chỉ gọi khi cần, không nuôi tốn cơm
 const RESOURCES = {
    tesseract: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
@@ -14,121 +6,6 @@ const RESOURCES = {
    pdfjs: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
    pdfWorker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 };
-
-// --- LICENSE LOGIC & STATE ---
-let usageData = {
-  freeChatUsed: parseInt(localStorage.getItem('free_chat_used') || '0'),
-  freeDebateUsed: parseInt(localStorage.getItem('free_debate_used') || '0'),
-  freeSynthesisUsed: parseInt(localStorage.getItem('free_synthesis_used') || '0'),
-  freeVisionUsed: parseInt(localStorage.getItem('free_vision_used') || '0'),
-  freeSquadUsed: parseInt(localStorage.getItem('free_squad_used') || '0'),
-  lastResetDate: localStorage.getItem('last_reset_date') || new Date().toDateString()
-};
-
-function checkAndResetDailyUsage() {
-  const today = new Date().toDateString();
-  if (usageData.lastResetDate !== today) {
-    Object.keys(usageData).forEach(key => {
-      if (key.startsWith('free') && key.endsWith('Used')) {
-        usageData[key] = 0;
-        localStorage.setItem(key, '0');
-      }
-    });
-    usageData.lastResetDate = today;
-    localStorage.setItem('last_reset_date', today);
-    console.log('✅ Đã reset lượt dùng hàng ngày');
-  }
-}
-
-async function validateLicenseKey(key) {
-  try {
-    const response = await fetch(`${LICENSE_CONFIG.SUPABASE_URL}/rest/v1/licenses?license_key=eq.${encodeURIComponent(key)}&select=*`, {
-      headers: {
-        'apikey': LICENSE_CONFIG.SUPABASE_KEY,
-        'Authorization': `Bearer ${LICENSE_CONFIG.SUPABASE_KEY}`
-      }
-    });
-    
-    if (!response.ok) throw new Error('API error');
-    
-    const data = await response.json();
-    if (data.length === 0) return { valid: false, message: 'License không tồn tại' };
-    
-    const license = data[0];
-    const now = new Date();
-    const expiresAt = new Date(license.expires_at);
-    
-    if (expiresAt < now) return { valid: false, message: 'License đã hết hạn' };
-    if (license.max_usage_count !== null && license.usage_count >= license.max_usage_count) return { valid: false, message: 'Đã hết lượt sử dụng' };
-    if (!license.is_active) return { valid: false, message: 'License đã bị vô hiệu hóa' };
-    
-    return { 
-      valid: true, 
-      expiresAt: license.expires_at,
-      daysLeft: Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24))
-    };
-    
-  } catch (error) {
-    console.error('Lỗi kiểm tra license:', error);
-    return { valid: false, message: 'Lỗi kết nối server (Kiểm tra Config)' };
-  }
-}
-
-function checkFeaturePermission(feature) {
-  checkAndResetDailyUsage();
-  
-  const licenseKey = localStorage.getItem('license_key');
-  
-  // 1. Kiểm tra License Premium
-  if (licenseKey) {
-    const licenseData = JSON.parse(localStorage.getItem('license_data') || '{}');
-    const now = new Date();
-    const expiresAt = new Date(licenseData.expiresAt);
-    
-    if (expiresAt > now) {
-      return { allowed: true, type: 'license', daysLeft: licenseData.daysLeft };
-    } else {
-      localStorage.removeItem('license_key');
-      localStorage.removeItem('license_data');
-      alert('⚠️ License của bạn đã hết hạn. Vui lòng gia hạn!');
-    }
-  }
-  
-  // 2. Kiểm tra giới hạn Free
-  const limits = {
-    'chat': { max: LICENSE_CONFIG.FREE_CHAT_LIMIT, usedKey: 'freeChatUsed' },
-    'debate': { max: LICENSE_CONFIG.FREE_FEATURE_LIMIT, usedKey: 'freeDebateUsed' },
-    'synthesis': { max: LICENSE_CONFIG.FREE_FEATURE_LIMIT, usedKey: 'freeSynthesisUsed' },
-    'vision': { max: LICENSE_CONFIG.FREE_FEATURE_LIMIT, usedKey: 'freeVisionUsed' },
-    'squad': { max: LICENSE_CONFIG.FREE_FEATURE_LIMIT, usedKey: 'freeSquadUsed' }
-  };
-  
-  const limit = limits[feature];
-  if (!limit) return { allowed: true, type: 'free' }; // Không giới hạn tính năng lạ
-  
-  if (usageData[limit.usedKey] >= limit.max) {
-    return { 
-      allowed: false, 
-      type: 'free',
-      message: `🚫 HẾT LƯỢT FREE!\nBạn đã dùng hết ${limit.max} lượt ${feature} hôm nay.\nVui lòng mua License hoặc quay lại ngày mai.`
-    };
-  }
-  
-  // Tăng lượt dùng và lưu lại
-  usageData[limit.usedKey]++;
-  localStorage.setItem(limit.usedKey, usageData[limit.usedKey].toString());
-  
-  // Update UI Header ngay lập tức
-  renderHeaderStatus();
-  
-  return { 
-    allowed: true, 
-    type: 'free', 
-    remaining: limit.max - usageData[limit.usedKey]
-  };
-}
-
-// --- STANDARD APP CODE STARTS HERE ---
 
 // Hàm chuyên đi gọi thợ dậy
 const loadScript = (id, src) => {
@@ -166,10 +43,9 @@ STYLE: Combine text with ASCII art.`;
 const WELCOME_HTML = `
    <div class="ai-response-group">
        <div class="ai-card border-purple-500/50">
-           <div class="ai-header"><span class="ai-model-name"><i class="fas fa-bolt text-yellow-400"></i> System v5.2 MoE + License</span></div>
+           <div class="ai-header"><span class="ai-model-name"><i class="fas fa-bolt text-yellow-400"></i> System v5.2 MoE</span></div>
            <div class="ai-bubble">
                Chào sếp! <b>AI Streaming Pro v5.2 (MoE Edition)</b> đã khởi động! 🏎️<br><br>
-               🔑 <b>License System:</b> Quản lý lượt dùng Free/Pro thông minh.<br>
                💤 <b>Mixture of Experts:</b> Các thư viện nặng (OCR, Python, PDF) giờ sẽ "ngủ đông" và chỉ thức dậy khi sếp gọi.<br>
                🎨 <b>Color & Highlight:</b> Code và Markdown đã được tô màu rực rỡ.<br>
                👁️ <b>NEW: Vision Mode:</b> Đọc hiểu ảnh/biểu đồ siêu xịn (Bật trong cài đặt).<br>
@@ -199,13 +75,12 @@ let chatHistory = [{ role: "system", content: config.systemPrompt }];
 const messagesArea = document.getElementById('messagesArea');
 const userInput = document.getElementById('userInput');
 const squadModeToggle = document.getElementById('squadModeToggle');
-const settingsModal = document.getElementById('settingsModal');
+   const settingsModal = document.getElementById('settingsModal');
 
 // --- INIT ---
 initChat();
 
 function initChat() {
-   checkAndResetDailyUsage(); // Kiểm tra reset lượt dùng hàng ngày
    renderHeaderStatus();
    if (messagesArea.innerHTML.trim() === "") messagesArea.innerHTML = WELCOME_HTML;
    
@@ -219,131 +94,11 @@ function initChat() {
        },
        breaks: true
    });
-
-   // Inject License UI sau 1s (đợi DOM ổn định)
-   setTimeout(() => {
-     if (settingsModal) addLicenseUI();
-   }, 1000);
 }
 
-// --- UI LICENSE HELPERS ---
-// [SỬA ĐỔI] Chỉ hiển thị trạng thái, bỏ khung nhập input để tránh xung đột
-function addLicenseUI() {
-  if (document.getElementById('licenseStatus')) return; // Đã thêm rồi thì thôi
+// --- RENDERING & THROTTLING (ANTI-LAG) ---
 
-  // HTML đã được rút gọn: Bỏ Input và Button
-  const licenseHTML = `
-    <div class="settings-section" style="border-top: 1px solid #334155; margin-top: 15px; padding-top: 15px;">
-      <h3 style="color: #fbbf24; margin-bottom: 10px;"><i class="fas fa-key"></i> License System</h3>
-      
-      <div id="licenseStatus" class="mb-3 p-3 rounded" style="background: #1e293b; border: 1px solid #334155;">
-        <div id="licenseStatusContent">
-          <i class="fas fa-spinner fa-spin"></i> Đang tải trạng thái...
-        </div>
-      </div>
-      
-      <div class="mt-3 text-xs text-slate-400" style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8;">
-        <div><i class="fas fa-sync-alt"></i> Reset Free: 00:00 hàng ngày</div>
-      </div>
-    </div>
-  `;
-
-  // Tìm vị trí chèn: Ưu tiên sau modelSettings
-  const content = settingsModal.querySelector('.settings-content') || settingsModal;
-  const modelSection = document.getElementById('modelSettings');
-  
-  if (modelSection && modelSection.parentNode) {
-    modelSection.insertAdjacentHTML('afterend', licenseHTML);
-  } else {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = licenseHTML;
-    content.appendChild(tempDiv);
-  }
-}
-
-
-function updateLicenseStatusDisplay() {
-  const statusContent = document.getElementById('licenseStatusContent');
-  if (!statusContent) return;
-
-  const licenseKey = localStorage.getItem('license_key');
-  
-  if (licenseKey) {
-    const licenseData = JSON.parse(localStorage.getItem('license_data') || '{}');
-    const now = new Date();
-    const expiresAt = new Date(licenseData.expiresAt);
-    const daysLeft = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
-    
-    if (daysLeft > 0) {
-        statusContent.innerHTML = `
-            <div class="text-green-400" style="color:#4ade80; font-weight:bold;">
-              <i class="fas fa-check-circle"></i> Đã kích hoạt Premium
-              <div style="font-size: 0.8em; color: #94a3b8; margin-top: 4px;">Còn ${daysLeft} ngày sử dụng</div>
-            </div>`;
-    } else {
-        statusContent.innerHTML = `<div class="text-red-400" style="color:#f87171;">⚠️ License đã hết hạn</div>`;
-    }
-  } else {
-    statusContent.innerHTML = `
-        <div class="text-yellow-400" style="color:#fbbf24;">
-          <i class="fas fa-info-circle"></i> Chế độ Free (Giới hạn)
-        </div>
-        <div style="font-size: 0.8em; color: #94a3b8; margin-top: 5px;">
-           Chat: ${usageData.freeChatUsed}/${LICENSE_CONFIG.FREE_CHAT_LIMIT} | 
-           Feats: ${usageData.freeDebateUsed}/${LICENSE_CONFIG.FREE_FEATURE_LIMIT}
-        </div>`;
-  }
-}
-
-// [SỬA ĐỔI] Hàm này giữ lại để tránh lỗi tham chiếu, nhưng thêm check an toàn
-async function activateLicense() {
-  const keyInput = document.getElementById('licenseKeyInput');
-  // Nếu không tìm thấy input (do đã xoá UI), thì return luôn để không lỗi
-  if (!keyInput) {
-      console.log("License Input UI hidden (Managed externally)");
-      return; 
-  }
-  
-  // Logic cũ giữ nguyên nếu cần dùng lại sau này
-  const key = keyInput.value.trim();
-  if (!key) return alert('Vui lòng nhập key!');
-  
-  const btn = event.target || document.createElement('button'); // Fallback nếu event null
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
-  
-  try {
-      const result = await validateLicenseKey(key);
-      if (result.valid) {
-        localStorage.setItem('license_key', key);
-        localStorage.setItem('license_data', JSON.stringify({
-          expiresAt: result.expiresAt,
-          daysLeft: result.daysLeft
-        }));
-        alert(`✅ Kích hoạt thành công! Còn ${result.daysLeft} ngày.`);
-        updateLicenseStatusDisplay();
-        renderHeaderStatus();
-      } else {
-        alert(`❌ ${result.message}`);
-      }
-  } catch(e) { console.error(e); }
-  
-  btn.innerHTML = originalText;
-}
-
-// [SỬA ĐỔI] Tương tự, thêm check an toàn
-function deactivateLicense() {
-  if(confirm('Bạn có chắc muốn xóa license key?')) {
-      localStorage.removeItem('license_key');
-      localStorage.removeItem('license_data');
-      updateLicenseStatusDisplay();
-      renderHeaderStatus();
-      alert('Đã về chế độ Free.');
-  }
-}
-
-// --- RENDERING & THROTTLING ---
-
+// Hàm bóp băng thông render: Chỉ render tối đa 1 lần mỗi 100ms
 function throttle(func, limit) {
    let lastFunc, lastRan;
    return function() {
@@ -363,17 +118,24 @@ function throttle(func, limit) {
    }
 }
 
+// --- HÀM RENDER & SMART SCROLL (ĐÃ SỬA: CHECK TRƯỚC KHI SCROLL) ---
 function renderContentToElement(elementId, text) {
    if (!elementId) return;
    const el = document.getElementById(elementId);
    if (!el) return;
 
+   // --- 1. SMART SCROLL LOGIC (Kiểm tra vị trí TRƯỚC khi update HTML) ---
    const container = messagesArea;
+   // Cho phép sai số 100px. Nếu người dùng đang ở đáy (hoặc gần đáy), thì sau khi render xong sẽ tự cuộn tiếp.
+   // Nếu người dùng đang ở xa đáy (> 100px) để đọc tin cũ, biến này sẽ là false -> KHÔNG CUỘN.
    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
 
+   // --- 2. RENDER CONTENT ---
+   // Parse Markdown & Highlight
    const htmlContent = marked.parse(text);
    el.innerHTML = htmlContent;
 
+       // Render Math (LaTeX)
    try {
        renderMathInElement(el, {
            delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}],
@@ -381,15 +143,18 @@ function renderContentToElement(elementId, text) {
        });
    } catch(e) {}
 
+   // --- 3. AUTO SCROLL ACTION ---
    if (isNearBottom) {
        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
    }
    
+   // Xử lý riêng cho ảnh/bảng to quá khổ làm vỡ layout
    const images = el.querySelectorAll('img');
    images.forEach(img => img.style.maxWidth = '100%');
    attachRunButtons();
 }
 
+// --- MESSAGE LOGIC ---
 function appendUserMessage(content, displayContent) {
    const div = document.createElement('div');
    div.className = 'user-message message';
@@ -424,6 +189,7 @@ function createAiCard(groupElement, modelName) {
 let pendingVisionImages = []; 
 
 async function convertPdfToImages(file) {
+   // Lazy Load PDF.js nếu chưa có
    if (!window.pdfjsLib) {
        await loadScript('pdf-lib', RESOURCES.pdfjs);
        pdfjsLib.GlobalWorkerOptions.workerSrc = RESOURCES.pdfWorker;
@@ -469,180 +235,169 @@ function toggleVisionSetting(el) {
    }
 }
 
-// --- REWRITTEN SEND MESSAGE (WITH LICENSE CHECKS) ---
+// --- REWRITTEN SEND MESSAGE (FIXED) ---
 async function sendMessage() {
-    let text = userInput.value.trim();
-    if (!text && !currentFileContent && pendingVisionImages.length === 0) return;
+let text = userInput.value.trim();
+if (!text && !currentFileContent && pendingVisionImages.length === 0) return;
 
-    // 🌟 LICENSE CHECK 1: CHUYỂN HƯỚNG SANG CÁC CHẾ ĐỘ ĐẶC BIỆT
-    // (Các hàm startDebateSystem và startSynthesisSystem sẽ tự kiểm tra license của riêng nó)
-    if (window.isDebateMode) {
-        startDebateSystem(text);
-        return;
-    }
-    if (window.isSynthesisMode) {
-        startSynthesisSystem(text);
-        return;
-    }
-
-    // 🌟 LICENSE CHECK 2: XÁC ĐỊNH LOẠI TÍNH NĂNG CƠ BẢN
-    let featureType = 'chat';
-    if (pendingVisionImages.length > 0) featureType = 'vision';
-    else if (config.isSquadMode) featureType = 'squad';
-    
-    // Kiểm tra quyền (trừ tiền nếu Free)
-    const permission = checkFeaturePermission(featureType);
-    if (!permission.allowed) {
-        alert(permission.message);
-        return; // Chặn luôn
-    }
-
-   // UI Updates
-   userInput.value = "";
-   userInput.style.height = 'auto';
-   setGeneratingState(true);
-   let displayHtml = text;
-
-   // --- TRƯỜNG HỢP 1: CÓ ẢNH -> CHẠY QUY TRÌNH AGENT ---
-   if (pendingVisionImages.length > 0) {
-    displayHtml += `<br><span class="text-xs text-yellow-400">[Chế độ: AI Agent Phân tích ảnh]</span>`;
-    displayHtml += `<div class="flex gap-2 mt-2 overflow-x-auto">`;
-    pendingVisionImages.forEach(img => {
-       displayHtml += `<img src="${img}" class="h-12 w-auto rounded border border-slate-600">`;
-    });
-    displayHtml += `</div>`;
-    appendUserMessage(text, displayHtml);
-
-    const mainModel = config.models[0];
-    const visionModel = config.visionModel;
-    const responseGroup = createResponseGroup();
-
-    // Tạo bong bóng trạng thái
-    const statusId = createAiCard(responseGroup, "System Agent");
-    const updateStatus = (msg) => {
-       const el = document.getElementById(statusId);
-       if(el) el.innerHTML = `<i class="fas fa-cog fa-spin text-yellow-400"></i> ${msg}`;
-    };
-
-    try {
-       // --- BƯỚC 1: DIRECTOR SUY NGHĨ ---
-       updateStatus("AI đang phân tích câu hỏi để chỉ đạo Vision...");
-       const directorPrompt = `
-       Bạn là một trợ lý AI thông minh (Director).
-       Người dùng vừa gửi một hình ảnh kèm câu hỏi: "${text || 'Hãy phân tích ảnh này'}".
-       Nhiệm vụ: Hãy viết một câu lệnh (Prompt) thật cụ thể, rõ ràng bằng tiếng Anh gửi cho AI Vision để nó trích xuất thông tin cần thiết nhất từ ảnh.
-       Chỉ trả về nội dung câu lệnh (Prompt).`;
-       
-       const visionInstruction = await runSingleDebateTurn(mainModel, [{role: "user", content: directorPrompt}], statusId);
-
-       if(abortControllers.length === 0) throw new Error("Đã dừng bởi người dùng.");
-
-       // --- BƯỚC 2: VISION THỰC THI ---
-       updateStatus(`Vision đang soi ảnh...`);
-       const visionContent = [
-           { type: "text", text: visionInstruction },
-           ...pendingVisionImages.map(img => ({ type: "image_url", image_url: { url: img } }))
-       ];
-       const visionAnalysis = await runSingleDebateTurn(visionModel, [{role: "user", content: visionContent}], statusId);
-
-       if(abortControllers.length === 0) throw new Error("Đã dừng bởi người dùng.");
-
-       // --- BƯỚC 3: TỔNG HỢP & TRẢ LỜI ---
-       updateStatus("AI đang tổng hợp câu trả lời cuối cùng...");
-       
-       const statusCard = document.getElementById(statusId).closest('.ai-card');
-       if(statusCard) statusCard.remove(); 
-
-       const finalPrompt = `
-       Thông tin gốc từ người dùng: "${text}"
-       Kết quả phân tích hình ảnh từ Vision AI: """${visionAnalysis}"""
-       Dựa vào thông tin trên, hãy trả lời câu hỏi của người dùng.`;
-
-       await runStream(mainModel, [...chatHistory, {role: "user", content: finalPrompt}], responseGroup);
-
-    } catch (e) {
-       console.error("Lỗi Vision:", e);
-       let el = document.getElementById(statusId);
-       if (!el) {
-           appendUserMessage("System Error", `<span class="text-red-400">Lỗi quy trình: ${e.message}</span>`);
-       } else {
-           el.innerHTML = `<span class="text-red-400">Lỗi: ${e.message}</span>`;
-       }
-    }
-    setGeneratingState(false);
-    return; 
+// 🌟 ĐIỀU HƯỚNG TỰ ĐỘNG: Nếu đang bật Debate thì bẻ lái
+if (window.isDebateMode) {
+startDebateSystem(text);
+return;
    }
-
-   // --- TRƯỜNG HỢP 2: CHAT THƯỜNG ---
-   let finalContext = null; 
-   if (currentFileContent) {
-       if (currentFileContent.length > 2000) {
-       
-       const smartKeywords = await extractSmartKeywords(text, config.models[0]);
-       
-       finalContext = await getRelevantContextWithStatus(smartKeywords, currentFileContent);
-       
-       displayHtml += `<div class="mt-2 text-[10px] text-blue-400 bg-slate-800/50 p-2 rounded border border-blue-500/30">
-           <div class="font-bold text-yellow-400 mb-1"><i class="fas fa-search"></i> SMART RAG Active:</div>
-           <div class="italic opacity-80">${smartKeywords}</div>
-       </div>`;
-       
-       } else {
-       finalContext = currentFileContent;
-       displayHtml += `<div class="mt-2 text-[10px] text-slate-500">${currentFileName} (Full Scan)</div>`;
-    }
+if (window.isSynthesisMode) {
+startSynthesisSystem(text);
+return;
    }
-   let fullPrompt = text;
-   if (finalContext) fullPrompt = `=== CONTEXT ===\n${finalContext}\n=== END ===\n\nUSER: ${text}`;
+   
 
-   appendUserMessage(text, displayHtml);
-   chatHistory.push({ role: "user", content: fullPrompt });
-   if(chatHistory.length > 8) chatHistory = [chatHistory[0], ...chatHistory.slice(-7)];
+// UI Updates
+userInput.value = "";
+userInput.style.height = 'auto';
+setGeneratingState(true);
+let displayHtml = text;
 
-   const responseGroup = createResponseGroup();
-   abortControllers = [];
+// --- TRƯỜNG HỢP 1: CÓ ẢNH -> CHẠY QUY TRÌNH AGENT ---
+if (pendingVisionImages.length > 0) {
+displayHtml += `<br><span class="text-xs text-yellow-400">[Chế độ: AI Agent Phân tích ảnh]</span>`;
+displayHtml += `<div class="flex gap-2 mt-2 overflow-x-auto">`;
+pendingVisionImages.forEach(img => {
+   displayHtml += `<img src="${img}" class="h-12 w-auto rounded border border-slate-600">`;
+});
+displayHtml += `</div>`;
+appendUserMessage(text, displayHtml);
 
-   let activeModel = config.isSquadMode ? config.models : [config.models[0]];
-   let modelsToRun = Array.isArray(activeModel) ? activeModel : [activeModel];
+const mainModel = config.models[0];
+const visionModel = config.visionModel;
+const responseGroup = createResponseGroup();
 
-   const promises = modelsToRun.map(model => runStream(model, chatHistory, responseGroup));
-   await Promise.allSettled(promises);
-   setGeneratingState(false);
+// Tạo bong bóng trạng thái
+const statusId = createAiCard(responseGroup, "System Agent");
+const updateStatus = (msg) => {
+   const el = document.getElementById(statusId);
+   if(el) el.innerHTML = `<i class="fas fa-cog fa-spin text-yellow-400"></i> ${msg}`;
+};
+
+try {
+   // --- BƯỚC 1: DIRECTOR SUY NGHĨ ---
+   updateStatus("AI đang phân tích câu hỏi để chỉ đạo Vision...");
+   const directorPrompt = `
+   Bạn là một trợ lý AI thông minh (Director).
+   Người dùng vừa gửi một hình ảnh kèm câu hỏi: "${text || 'Hãy phân tích ảnh này'}".
+   Nhiệm vụ: Hãy viết một câu lệnh (Prompt) thật cụ thể, rõ ràng bằng tiếng Anh gửi cho AI Vision để nó trích xuất thông tin cần thiết nhất từ ảnh.
+   Chỉ trả về nội dung câu lệnh (Prompt).`;
+   
+   const visionInstruction = await runSingleDebateTurn(mainModel, [{role: "user", content: directorPrompt}], statusId);
+
+   // Check Stop trước khi qua bước tiếp theo
+   if(abortControllers.length === 0) throw new Error("Đã dừng bởi người dùng.");
+
+   // --- BƯỚC 2: VISION THỰC THI ---
+   updateStatus(`Vision đang soi ảnh...`);
+   const visionContent = [
+       { type: "text", text: visionInstruction },
+       ...pendingVisionImages.map(img => ({ type: "image_url", image_url: { url: img } }))
+   ];
+   const visionAnalysis = await runSingleDebateTurn(visionModel, [{role: "user", content: visionContent}], statusId);
+
+   if(abortControllers.length === 0) throw new Error("Đã dừng bởi người dùng.");
+
+   // --- BƯỚC 3: TỔNG HỢP & TRẢ LỜI ---
+   updateStatus("AI đang tổng hợp câu trả lời cuối cùng...");
+   
+   // 🔥 FIX QUAN TRỌNG: Không xóa statusCard ngay, mà thay đổi nội dung của nó hoặc tạo cái mới
+   const statusCard = document.getElementById(statusId).closest('.ai-card');
+   if(statusCard) statusCard.remove(); // Xóa cái cũ đi
+
+   const finalPrompt = `
+   Thông tin gốc từ người dùng: "${text}"
+   Kết quả phân tích hình ảnh từ Vision AI: """${visionAnalysis}"""
+   Dựa vào thông tin trên, hãy trả lời câu hỏi của người dùng.`;
+
+   // Gọi hàm stream (Phải đảm bảo hàm này tồn tại - xem Bước 2 bên dưới)
+   await runStream(mainModel, [...chatHistory, {role: "user", content: finalPrompt}], responseGroup);
+
+} catch (e) {
+   console.error("Lỗi Vision:", e);
+   // 🔥 FIX QUAN TRỌNG: Kiểm tra nếu element còn tồn tại thì in lỗi, không thì tạo mới
+   let el = document.getElementById(statusId);
+   if (!el) {
+       // Nếu bong bóng status đã bị xóa thì tạo thông báo lỗi mới
+       appendUserMessage("System Error", `<span class="text-red-400">Lỗi quy trình: ${e.message}</span>`);
+   } else {
+       el.innerHTML = `<span class="text-red-400">Lỗi: ${e.message}</span>`;
+   }
+}
+setGeneratingState(false);
+return; 
+}
+
+// --- TRƯỜNG HỢP 2: CHAT THƯỜNG ---
+let finalContext = null; // Khai báo biến context
+if (currentFileContent) {
+   // Nếu file dài > 2000 ký tự thì kích hoạt RAG
+   if (currentFileContent.length > 2000) {
+   
+   // 🌟 1. KÍCH HOẠT SMART KEYWORD AGENT 🌟
+   // Lấy model đầu tiên để phân tích keyword
+   const smartKeywords = await extractSmartKeywords(text, config.models[0]);
+   
+   // 🌟 2. GỌI HÀM SCAN VỚI TỪ KHÓA THÔNG MINH 🌟
+   // Truyền smartKeywords vào thay vì text gốc
+   finalContext = await getRelevantContextWithStatus(smartKeywords, currentFileContent);
+   
+   // UI: Hiển thị từ khóa AI đã nghĩ ra (cho ngầu)
+   displayHtml += `<div class="mt-2 text-[10px] text-blue-400 bg-slate-800/50 p-2 rounded border border-blue-500/30">
+       <div class="font-bold text-yellow-400 mb-1"><i class="fas fa-search"></i> SMART RAG Active:</div>
+       <div class="italic opacity-80">${smartKeywords}</div>
+   </div>`;
+   
+   } else {
+   finalContext = currentFileContent;
+   displayHtml += `<div class="mt-2 text-[10px] text-slate-500">${currentFileName} (Full Scan)</div>`;
+}
+}
+let fullPrompt = text;
+if (finalContext) fullPrompt = `=== CONTEXT ===\n${finalContext}\n=== END ===\n\nUSER: ${text}`;
+
+appendUserMessage(text, displayHtml);
+chatHistory.push({ role: "user", content: fullPrompt });
+if(chatHistory.length > 8) chatHistory = [chatHistory[0], ...chatHistory.slice(-7)];
+
+const responseGroup = createResponseGroup();
+abortControllers = [];
+
+// FIX: Thêm từ khóa 'let' để tránh lỗi Strict Mode
+let activeModel = config.isSquadMode ? config.models : [config.models[0]];
+let modelsToRun = Array.isArray(activeModel) ? activeModel : [activeModel];
+
+const promises = modelsToRun.map(model => runStream(model, chatHistory, responseGroup));
+await Promise.allSettled(promises);
+setGeneratingState(false);
 }            
 
 // --- SETTINGS UI ---
 function openSettings() {
-   // Các phần input API Key, Model giữ nguyên
-   if(document.getElementById('apiKeyInput')) document.getElementById('apiKeyInput').value = config.apiKey;
-   if(document.getElementById('customUrlInput')) document.getElementById('customUrlInput').value = config.customUrl;
-   if(document.getElementById('systemPromptInput')) document.getElementById('systemPromptInput').value = config.systemPrompt;
-   if(document.getElementById('tempInput')) document.getElementById('tempInput').value = config.temperature; 
-   if(document.getElementById('tempDisplay')) document.getElementById('tempDisplay').innerText = config.temperature;
+   document.getElementById('apiKeyInput').value = config.apiKey;
+   document.getElementById('customUrlInput').value = config.customUrl;
+   document.getElementById('systemPromptInput').value = config.systemPrompt;
+   document.getElementById('tempInput').value = config.temperature; 
+document.getElementById('tempDisplay').innerText = config.temperature;
 
-   if(document.getElementById('visionModelInput')) document.getElementById('visionModelInput').value = config.visionModel;
-   
-   const vBtn = document.getElementById('visionToggleBtn');
-   if(vBtn && vBtn.parentElement) {
-       const switchEl = vBtn.parentElement.querySelector('.toggle-switch');
-       if(switchEl) {
-           if(config.useVision) {
-               switchEl.style.background = '#fbbf24';
-               switchEl.innerHTML = '<div style="position:absolute; top:2px; left:14px; width:14px; height:14px; background:white; border-radius:50%;"></div>';
-           } else {
-               switchEl.style.background = '#334155';
-               switchEl.innerHTML = '<div style="position:absolute; top:2px; left:2px; width:14px; height:14px; background:white; border-radius:50%;"></div>';
-           }
-       }
+   // 🆕 Load Vision Settings
+   document.getElementById('visionModelInput').value = config.visionModel;
+   const vBtn = document.getElementById('visionToggleBtn').parentElement;
+   const switchEl = vBtn.querySelector('.toggle-switch');
+   if(config.useVision) {
+           switchEl.style.background = '#fbbf24';
+           switchEl.innerHTML = '<div style="position:absolute; top:2px; left:14px; width:14px; height:14px; background:white; border-radius:50%;"></div>';
+   } else {
+           switchEl.style.background = '#334155';
+           switchEl.innerHTML = '<div style="position:absolute; top:2px; left:2px; width:14px; height:14px; background:white; border-radius:50%;"></div>';
    }
    
    renderModelList();
-   if(settingsModal) settingsModal.classList.add('active');
-
-   // 🔥 LICENSE CHECK: Chỉ render UI trạng thái, không render input
-   if (!document.getElementById('licenseStatus')) {
-     addLicenseUI();
-   }
-   updateLicenseStatusDisplay();
+   settingsModal.classList.add('active');
 }
 
 
@@ -680,6 +435,9 @@ function addCustomModel() {
 }
 function removeModel(index) { config.models.splice(index, 1); renderModelList(); }
 
+
+
+
 function saveSettings() {
    config.apiKey = document.getElementById('apiKeyInput').value.trim();
    config.customUrl = document.getElementById('customUrlInput').value.trim();
@@ -688,8 +446,9 @@ function saveSettings() {
    localStorage.setItem('chat_api_key', config.apiKey);
    localStorage.setItem('chat_custom_url', config.customUrl);         
    localStorage.setItem('chat_models_list', JSON.stringify(config.models));
-   localStorage.setItem('chat_temperature', config.temperature);
+           localStorage.setItem('chat_temperature', config.temperature);
    
+   // 🆕 Save Vision Settings
    config.visionModel = document.getElementById('visionModelInput').value.trim();
    localStorage.setItem('chat_use_vision', config.useVision);
    localStorage.setItem('chat_vision_model', config.visionModel);
@@ -699,6 +458,9 @@ function saveSettings() {
    closeSettings();
 }
 function closeSettings() { settingsModal.classList.remove('active'); }
+
+
+
 
 // --- UTILS ---
 function stopGeneration() { abortControllers.forEach(c => c.abort()); abortControllers = []; }
@@ -710,37 +472,14 @@ function toggleSquadMode() {
 }
 function renderHeaderStatus() {
    const el = document.getElementById('headerStatus');
-   if(!el) return;
-   
    const firstModel = config.models[0] || 'None';
    let displayModel = firstModel;
    if (firstModel.includes('/')) {
        displayModel = firstModel.split('/').pop();
    }
-   
-   // 🔥 HIỂN THỊ LICENSE BADGE TRÊN HEADER
-   const licenseKey = localStorage.getItem('license_key');
-   let licenseBadge = '';
-  
-   if (licenseKey) {
-     const licenseData = JSON.parse(localStorage.getItem('license_data') || '{}');
-     const now = new Date();
-     const expiresAt = new Date(licenseData.expiresAt);
-    
-     if (expiresAt > now) {
-       const daysLeft = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
-       licenseBadge = ` <span style="color:#4ade80; font-size:0.9em;">🪪 Pro(${daysLeft}d)</span>`;
-     } else {
-       licenseBadge = ` <span style="color:#f87171; font-size:0.9em;">⚠️ Expired</span>`;
-     }
-   } else {
-     const remainingChat = LICENSE_CONFIG.FREE_CHAT_LIMIT - usageData.freeChatUsed;
-     licenseBadge = ` <span style="color:#fbbf24; font-size:0.9em;">🆓 Free(${remainingChat})</span>`;
-   }
-   
-   el.innerHTML = config.isSquadMode 
-       ? `Squad Mode (${config.models.length}) ${licenseBadge}` 
-       : `Single: ${displayModel} ${licenseBadge}`;
+   el.innerText = config.isSquadMode 
+       ? `Squad Mode (${config.models.length})` 
+       : `Single: ${displayModel}`;
 }
 function setGeneratingState(isGen) {
    document.getElementById('sendBtn').style.display = isGen ? 'none' : 'flex';
@@ -750,6 +489,7 @@ function setGeneratingState(isGen) {
 }
 
 let currentFileContent=null,                 currentFileName=null;
+// let globalOcrWorker = null; // ❌ CŨ: XÓA ĐI, DÙNG activeWorkers
 
    // --- 🆙 HÀM ĐỌC PDF THÔNG MINH (LAZY LOAD) ---
    async function readPdfText(file) {
@@ -779,27 +519,33 @@ let currentFileContent=null,                 currentFileName=null;
 
 // --- 🆙 HÀM OCR THÔNG MINH (MOE AGENT) ---
 async function runOCR(file, statusSpan) {
+   // 1. Gọi thư viện
    if (!window.Tesseract) {
        statusSpan.innerHTML = `<i class="fas fa-download fa-spin"></i> Đang tải Module OCR (Lần đầu hơi lâu)...`;
        await loadScript('tesseract-lib', RESOURCES.tesseract);
    }
 
+   // 2. Khởi tạo Worker nếu chưa có
    if (!activeWorkers.ocr) {
        statusSpan.innerHTML = `<i class="fas fa-brain fa-spin"></i> Đang khởi động não bộ OCR...`;
        activeWorkers.ocr = await Tesseract.createWorker('vie+eng');
    }
 
+   // 3. Hủy hẹn giờ ngủ (nếu đang đếm ngược)
    if (activeWorkers.ocrTimer) clearTimeout(activeWorkers.ocrTimer);
 
+   // 4. Thực thi
    const ret = await activeWorkers.ocr.recognize(file);
 
+   // 5. 🛌 HẸN GIỜ NGỦ ĐÔNG (Hibernate)
+   // Nếu sau 60s không ai nhờ đọc nữa, cho worker nghỉ hưu để trả RAM
    activeWorkers.ocrTimer = setTimeout(async () => {
        if (activeWorkers.ocr) {
            console.log("💤 OCR Worker hết việc, đi ngủ thôi!");
            await activeWorkers.ocr.terminate();
            activeWorkers.ocr = null;
        }
-   }, 60000); 
+   }, 60000); // 60 giây
 
    return ret.data.text;
 }
@@ -811,15 +557,18 @@ async function handleFileSelect(input) {
    const files = input.files;
    if (!files || files.length === 0) return;
 
+   // Cập nhật giao diện: Hiện khung xem trước
    const previewDiv = document.getElementById('filePreview');
    const nameSpan = document.getElementById('fileName');
    previewDiv.classList.remove('hidden');  
    
+   // Reset buffer
    currentFileContent = "";
    pendingVisionImages = [];
    let names = [];
 
    try {
+       // 🌟 CHẾ ĐỘ 1: VISION MODE (Gửi ảnh trực tiếp)
        if (config.useVision) {
                nameSpan.innerHTML = `<i class="fas fa-eye text-yellow-400 fa-spin"></i> Vision Mode Processing...`;
                
@@ -836,12 +585,16 @@ async function handleFileSelect(input) {
                    images.forEach(img => pendingVisionImages.push(img));
                }
                else {
+                   // File text vẫn đọc text bình thường
                    const text = await readFileAsText(file);
                    currentFileContent += `\n=== TEXT FILE (${file.name}) ===\n${text}\n`;
                }
                }
+               // Update UI cho Vision
                nameSpan.innerHTML = `<i class="fas fa-eye text-yellow-400"></i> Vision Ready: ${pendingVisionImages.length} Imgs + Text`;
        }
+       
+       // 🌑 CHẾ ĐỘ 2: TEXT/OCR MODE (MOE UPDATE)
        else {
            for (let i = 0; i < files.length; i++) {
                const file = files[i];
@@ -849,10 +602,12 @@ async function handleFileSelect(input) {
                nameSpan.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Đang đọc (${i + 1}/${files.length}): ${file.name}...`;
 
                if (file.type.startsWith('image/')) {
+                   // 👇 DÙNG HÀM MOE OCR MỚI
                    const text = await runOCR(file, nameSpan);
                    currentFileContent += `\n\n=== FILE ẢNH (OCR - ${file.name}) ===\n${text}\n==============================\n`;
                } 
                else if (file.type === 'application/pdf') {
+                   // 👇 DÙNG HÀM MOE PDF MỚI
                    const pdfText = await readPdfText(file);
                    currentFileContent += `\n\n=== FILE PDF (${file.name}) ===\n${pdfText}\n==============================\n`;
                } 
@@ -872,6 +627,9 @@ async function handleFileSelect(input) {
    input.value = ''; 
 }
 
+
+
+
 // Helper: Read text file as Promise
 function readFileAsText(file) {
    return new Promise((resolve, reject) => {
@@ -884,7 +642,7 @@ function readFileAsText(file) {
 
 function clearFile() { 
    currentFileContent=null; 
-   pendingVisionImages = []; 
+   pendingVisionImages = []; // Clear images
    document.getElementById('fileInput').value=''; 
    document.getElementById('filePreview').classList.add('hidden'); 
 }
@@ -913,10 +671,12 @@ outputDiv.className = 'python-output';
 actionBar.parentNode.insertBefore(outputDiv, actionBar.nextSibling);
 }
 
+// UI Loading
 outputDiv.innerHTML = '<span class="text-yellow-400"><i class="fas fa-spinner fa-spin"></i> Đang gọi chuyên gia Python dậy...</span>';
 outputDiv.classList.add('active');
 
 try {
+// 💤 LAZY LOAD PYODIDE: CHƯA CÓ THÌ GỌI DẬY
 if (!window.loadPyodide) {
    await loadScript('pyodide-script', RESOURCES.pyodide);
 }
@@ -930,6 +690,7 @@ if (!pyodideReady) {
 
 outputDiv.innerHTML = '<span class="text-green-400"><i class="fas fa-spinner fa-spin"></i> Đang xử lý...</span>';
 
+// 📱 RESPONSIVE LOGIC
 const isMobile = window.innerWidth < 768;
 const figSize = isMobile ? "[6, 6]" : "[10, 6]"; 
 const fontSize = isMobile ? "12" : "10";
@@ -991,9 +752,11 @@ document.querySelectorAll('code.language-python').forEach(codeEl => {
 const pre = codeEl.parentElement;
 if (pre.nextElementSibling && pre.nextElementSibling.classList.contains('code-action-bar')) return;
 
+// Tạo thanh công cụ
 const actionBar = document.createElement('div');
 actionBar.className = 'code-action-bar';
 
+// 👇 Quan trọng: onclick chỉ gọi hàm, không truyền tham số code nữa
 actionBar.innerHTML = `
    <div class="run-btn" onclick="runPython(this)">
        <i class="fas fa-play"></i> RUN
@@ -1004,47 +767,53 @@ pre.parentNode.insertBefore(actionBar, pre.nextSibling);
 });
 }    
 
-// Hệ thống điều phối vòng lặp tranh biện
+// Hệ thống điều phối vòng lặp tranh biện (Phiên bản "Khích Tướng" v2.0)
+// Khai báo biến toàn cục để lưu trạng thái bật/tắt
+// --- 1. BIẾN & NÚT BẬT TẮT (BẮT BUỘC PHẢI CÓ) ---
 window.isDebateMode = false; 
 
 function toggleDebateMode() {
 window.isDebateMode = !window.isDebateMode;
 
+// Lấy các phần tử DOM cần thiết
 const btn = document.getElementById('debateModeToggle');
 const inputWrapper = document.querySelector('.input-wrapper');
 const sendIcon = document.querySelector('#sendBtn i');
 
 if (window.isDebateMode) {
+// --- KÍCH HOẠT CHẾ ĐỘ DEBATE ---
+
+// 1. UI Button: Bật trạng thái active cho nút Debate
 btn.classList.add('debate-active'); 
+
+// 2. UI Input: Đổi giao diện ô nhập sang màu đỏ "chiến"
 inputWrapper.classList.add('debate-mode-active');
 userInput.placeholder = "⚔️ Nhập chủ đề để 2 AI tranh biện (VD: AI có thay thế con người?)...";
 userInput.focus();
 
+// 3. Logic: Tắt Squad Mode nếu đang bật để tránh xung đột
 if (config && config.isSquadMode) {
    config.isSquadMode = false;
    document.getElementById('squadModeToggle').classList.remove('active');
-   renderHeaderStatus();
+   renderHeaderStatus(); // Cập nhật lại header
 }
 
-sendIcon.className = "fas fa-gavel"; 
+// 4. Icon: Đổi icon gửi thành hình kiếm hoặc giữ nguyên
+sendIcon.className = "fas fa-gavel"; // Đổi thành cái búa phán xử cho ngầu
 
 } else {
+// --- TẮT CHẾ ĐỘ DEBATE (VỀ CHAT THƯỜNG) ---
+
 btn.classList.remove('debate-active');
-inputWrapper.classList.remove('debate-mode-active'); 
+inputWrapper.classList.remove('debate-mode-active'); // Gỡ bỏ màu đỏ
 userInput.placeholder = "Nhập tin nhắn...";
-sendIcon.className = "fas fa-paper-plane"; 
+sendIcon.className = "fas fa-paper-plane"; // Trả lại icon máy bay giấy
 }
 }
 
-// --- 1. HÀM CHẠY DEBATE (CÓ LICENSE CHECK) ---
+// --- 1. HÀM CHẠY DEBATE (ĐÃ NÂNG CẤP THÊM TRỌNG TÀI) ---
 async function startDebateSystem(topic) {
-// 🔥 CHECK LICENSE TRƯỚC
-const permission = checkFeaturePermission('debate');
-if (!permission.allowed) {
-    alert(permission.message);
-    return;
-}
-
+// [GIỮ NGUYÊN] Reset và kiểm tra điều kiện
 abortControllers = [];
 if (config.models.length < 2) {
 alert("⚠️ Cần chọn ít nhất 2 Models để chạy debate!");
@@ -1054,12 +823,14 @@ return;
 const modelA = config.models[0];
 const modelB = config.models[1];
 
+// [GIỮ NGUYÊN] Random số lượt từ 3 đến 19
 const maxTurns = 15;
 console.log(`🎰 Random Turn: Trận này sẽ chém nhau ${maxTurns} hiệp!`);
 
 document.getElementById('userInput').value = "";
 setGeneratingState(true);
 
+// [GIỮ NGUYÊN] Prompt Đạo diễn phân vai
 const directorPrompt = `
 Topic: "${topic}".
 Task: Analyze this topic and identify 2 opposing perspectives (Debater A vs Debater B).
@@ -1072,6 +843,7 @@ Output format: JSON ONLY.
 "descB": "Core mindset of perspective 2 (Vietnamese)"
 }`;
 
+// Gọi Model A để làm đạo diễn phân tích
 let roles = { 
 roleA: "Góc nhìn 1", descA: "Ủng hộ", 
 roleB: "Góc nhìn 2", descB: "Phản đối" 
@@ -1083,6 +855,7 @@ const scanResult = await runSingleDebateTurn(modelA, [
    {role: "user", content: directorPrompt}
 ], "null");
 
+// FIX: Cải thiện khả năng parse JSON phòng trường hợp model trả về text thừa
 const firstBracket = scanResult.indexOf('{');
 const lastBracket = scanResult.lastIndexOf('}');
 if (firstBracket !== -1 && lastBracket !== -1) {
@@ -1094,6 +867,7 @@ console.log("Auto-assigned Roles:", roles);
 console.error("Auto-cast failed, using fallback:", e);
 }
 
+// [GIỮ NGUYÊN] DỰNG GIAO DIỆN CINEMA MODE
 appendUserMessage(topic, `
 <div class="cinema-title" style="background: linear-gradient(90deg, #0f172a, #1e293b); border:1px solid #475569;">
    <h3 style="color:#38bdf8">
@@ -1125,11 +899,13 @@ responseGroup.innerHTML = `
 </div>
 ` + responseGroup.innerHTML;
 
+// --- [MỚI] KHỞI TẠO BIÊN BẢN TRẬN ĐẤU (TRANSCRIPT) ---
 let debateTranscript = `CHỦ ĐỀ TRANH BIỆN: ${topic}\n`;
 debateTranscript += `BÊN A (${roles.roleA}): ${roles.descA}\n`;
 debateTranscript += `BÊN B (${roles.roleB}): ${roles.descB}\n`;
 debateTranscript += `-----------------------------------\n`;
 
+// [GIỮ NGUYÊN] VÒNG LẶP TRANH LUẬN
 let lastLine = "";
 for (let turn = 1; turn <= maxTurns; turn++) {
 const isTurnA = turn % 2 !== 0;
@@ -1138,6 +914,7 @@ const currentRole = isTurnA ? roles.roleA : roles.roleB;
 const currentDesc = isTurnA ? roles.descA : roles.descB;
 const opponentRole = isTurnA ? roles.roleB : roles.roleA;
 
+// Prompt diễn viên (Giữ nguyên)
 const systemPrompt = `
 Identity: You represent the perspective of "${currentRole}" regarding "${topic}".
 Core Mindset: ${currentDesc}.
@@ -1159,6 +936,7 @@ if (turn === 1) {
 
 const bubbleId = createAiCard(responseGroup, isTurnA ? roles.roleA : roles.roleB);
 
+// Style thẻ (Giữ nguyên)
 const card = document.getElementById(bubbleId).closest('.ai-card');
 card.style.borderLeft = isTurnA ? '3px solid #3b82f6' : '3px solid #ef4444';
 card.style.background = isTurnA ? 'rgba(59, 130, 246, 0.05)' : 'rgba(239, 68, 68, 0.05)';
@@ -1171,8 +949,10 @@ try {
    
    lastLine = result.replace(/\n+/g, ' ').trim();
    
+   // --- [MỚI] GHI VÀO BIÊN BẢN CHO TRỌNG TÀI ĐỌC ---
    debateTranscript += `[${currentRole}]: ${lastLine}\n`;
 
+   // Nghỉ 1 xíu cho user kịp đọc
    await new Promise(r => setTimeout(r, 1000));
 } catch (e) {
    console.error(e);
@@ -1180,16 +960,21 @@ try {
 }
 }
 
+// --- [MỚI] SAU KHI DEBATE XONG -> GỌI TRỌNG TÀI PHÁN QUYẾT ---
+// Sử dụng Model A hoặc Model B để làm trọng tài (hoặc model thứ 3 nếu có trong list)
+// Ở đây ta dùng luôn modelA cho tiện, nhưng ép đóng vai khác.
 await judgeTheDebate(modelA, debateTranscript);
 
 setGeneratingState(false);
 }
 
-// --- 2. HÀM TRỌNG TÀI ---
+// --- 2. HÀM TRỌNG TÀI (THÊM MỚI HOÀN TOÀN) ---
 async function judgeTheDebate(judgeModel, transcript) {
+// Tìm group hiện tại để append thẻ trọng tài vào
 const allGroups = document.querySelectorAll('.ai-response-group');
 const responseGroup = allGroups[allGroups.length - 1]; 
 
+// Tạo thẻ UI Trọng tài đặc biệt
 const refereeId = 'referee-' + Date.now();
 const div = document.createElement('div');
 div.className = 'ai-card referee-card'; // Dùng class CSS mới
@@ -1206,8 +991,10 @@ div.innerHTML = `
 `;
 responseGroup.appendChild(div);
 
+// Scroll xuống
 document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
 
+// Prompt cực gắt cho trọng tài
 const judgePrompt = `
 Role: You are the ULTIMATE JUDGE of a debate. You are wise, fair, but dramatic.
 Input: The full transcript of a debate between two AI perspectives.
@@ -1242,6 +1029,7 @@ await runSingleDebateTurn(judgeModel, [
    { role: "user", content: judgePrompt }
 ], refereeId);
 
+// Scroll lần cuối
 document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
 
 } catch (e) {
@@ -1249,7 +1037,8 @@ document.getElementById(refereeId).innerHTML = `<div class="text-red-400 p-2">�
 }
 }
 
-// --- STREAMING ENGINE ---
+// --- STREAMING ENGINE (FIXED FOR SYNTHESIS & SQUAD) ---
+// Thêm tham số specificElementId để hỗ trợ ghi đè vào phần tử có sẵn (Synthesis Mode)
 async function runStream(model, messages, groupElement, specificElementId = null) {
 const endpoint = config.customUrl.trim() || DEFAULT_URL;
 let bubbleId;
@@ -1307,6 +1096,7 @@ while (true) {
    }
 }
 
+// Update history nếu là model chính
 if (!config.isSquadMode || model === config.models[0]) {
        chatHistory.push({ role: "assistant", content: fullText });
 }
@@ -1320,6 +1110,8 @@ if (e.name === 'AbortError') {
 }
 }
 
+
+// --- DEBATE ENGINE: Non-stream version (dùng cho tranh biện) ---
 async function runSingleDebateTurn(model, messages, bubbleId) {
 const endpoint = config.customUrl.trim() || DEFAULT_URL;
 const controller = new AbortController();
@@ -1347,6 +1139,7 @@ if (!response.ok) throw new Error("API Error: " + response.status);
 const data = await response.json();
 const content = data.choices[0]?.message?.content || "[Không có phản hồi]";
 
+// Cập nhật UI nếu có ID (nếu bubbleId == "null" thì thôi)
 if (bubbleId && bubbleId !== "null") {
        renderContentToElement(bubbleId, content);
 }
@@ -1372,13 +1165,14 @@ const inputWrapper = document.querySelector('.input-wrapper');
 const sendIcon = document.querySelector('#sendBtn i');
 
 if (window.isSynthesisMode) {
+// Tắt các mode khác
 if (window.isDebateMode) toggleDebateMode();
 if (config.isSquadMode) toggleSquadMode();
 
 btn.classList.add('synthesis-active');
-inputWrapper.style.borderColor = "#fbbf24"; 
+inputWrapper.style.borderColor = "#fbbf24"; // Màu vàng
 document.getElementById('userInput').placeholder = "⚗️ Nhập vấn đề để AI chưng cất câu trả lời tinh khiết nhất...";
-sendIcon.className = "fas fa-flask"; 
+sendIcon.className = "fas fa-flask"; // Icon bình thí nghiệm
 } else {
 btn.classList.remove('synthesis-active');
 inputWrapper.style.borderColor = "#334155";
@@ -1387,20 +1181,15 @@ sendIcon.className = "fas fa-paper-plane";
 }
 }
 
-// --- 🧪 SYNTHESIS ENGINE (CÓ LICENSE CHECK) ---
+// --- 🧪 SYNTHESIS ENGINE (CÔNG NGHỆ HỘI TỤ) ---
 async function startSynthesisSystem(query) {
-// 🔥 CHECK LICENSE TRƯỚC
-const permission = checkFeaturePermission('synthesis');
-if (!permission.allowed) {
-    alert(permission.message);
-    return;
-}
-
+// Kiểm tra số lượng model
 if (config.models.length < 2) {
 alert("⚠️ Cần ít nhất 2 Models trong danh sách để hội tụ thông tin!");
 return;
 }
 
+// UI Setup
 document.getElementById('userInput').value = "";
 setGeneratingState(true);
 appendUserMessage(query, `
@@ -1412,10 +1201,12 @@ appendUserMessage(query, `
 
 const responseGroup = createResponseGroup();
 
+// 1. Tạo khung chứa kết quả thô (Raw inputs)
 const rawContainer = document.createElement('div');
 rawContainer.className = 'raw-results-container';
 responseGroup.appendChild(rawContainer);
 
+// 2. Tạo thẻ kết quả chính (Synthesis Card)
 const synthesisId = 'syn-' + Date.now();
 const mainCard = document.createElement('div');
 mainCard.className = 'ai-card synthesis-card';
@@ -1435,6 +1226,7 @@ mainCard.innerHTML = `
 `;
 responseGroup.appendChild(mainCard);
 
+// Helper update step
 const updateStep = (step) => {
 [1,2,3,4].forEach(i => document.getElementById(`step${i}-${synthesisId}`).classList.remove('active'));
 if(step <= 4) document.getElementById(`step${step}-${synthesisId}`).classList.add('active');
@@ -1442,7 +1234,10 @@ if(step <= 4) document.getElementById(`step${step}-${synthesisId}`).classList.ad
 
 let rawResults = [];
 try {
+// --- BƯỚC 1: PARALLEL GENERATION (Chạy song song) ---
+// Chạy song song tất cả models
 const promises = config.models.map(async (model, index) => {
+   // Tạo box nhỏ hiển thị raw
    const rawBox = document.createElement('div');
    rawBox.className = 'raw-card';
    rawBox.id = `raw-${index}-${synthesisId}`;
@@ -1450,8 +1245,10 @@ const promises = config.models.map(async (model, index) => {
    rawContainer.appendChild(rawBox);
 
    try {
+       // Prompt yêu cầu trả lời ngắn gọn
        const rawRes = await runSingleDebateTurn(model, [{role: "user", content: query + " (Trả lời ngắn gọn, tập trung vào sự thật cốt lõi)"}], "null");
        
+       // Cập nhật UI box nhỏ
        const shortName = model.split('/').pop();
        rawBox.innerHTML = `<span class="text-green-400">✔ ${shortName}</span>`;
        
@@ -1473,11 +1270,15 @@ setGeneratingState(false);
 return;
 }
 
+// --- MODEL LEADER (Dùng model đầu tiên) ---
 const leaderModel = config.models[0]; 
 
+// --- BƯỚC 2 & 3: ANALYZE & FILTER ---
 updateStep(2);
+// Ghép các câu trả lời thô
 const combinedInput = rawResults.map((r, i) => `[NGUỒN ${i+1} - ${r.model}]:\n${r.content}`).join("\n\n----------------\n\n");
 
+// Prompt "Lọc vàng"
 const filterPrompt = `
 Nhiệm vụ: Bạn là một "Consensus Engine" (Bộ máy đồng thuận).
 Dưới đây là các câu trả lời thô từ các nguồn AI khác nhau về câu hỏi: "${query}".
@@ -1500,14 +1301,17 @@ YÊU CẦU ĐẦU RA:
 `;
 
 updateStep(3);
-await new Promise(r => setTimeout(r, 800)); 
+await new Promise(r => setTimeout(r, 800)); // Delay tạo hiệu ứng
 
+// --- BƯỚC 4: FINALIZE (Stream kết quả) ---
 updateStep(4);
 try {
+// Ẩn bảng trạng thái step, hiện khung kết quả
 document.getElementById(`syn-status-${synthesisId}`).classList.add('hidden');
 const contentDiv = document.getElementById(synthesisId);
 contentDiv.classList.remove('hidden');
 
+// Gọi hàm stream - LƯU Ý: Đã fix để stream vào đúng ID
 await runStream(leaderModel, [{role: "system", content: "You are a Helpful Expert Synthesizer."}, {role: "user", content: filterPrompt}], mainCard.parentElement, synthesisId);
 
 } catch (e) {
@@ -1519,12 +1323,13 @@ setGeneratingState(false);
 
 // --- 🧠 SMART RAG AGENT: PHÂN TÍCH Ý ĐỊNH ---
 async function extractSmartKeywords(query, model) {
+// UI: Báo hiệu đang suy nghĩ từ khóa
 const ragStatusText = document.getElementById('ragStatusText');
 const ragContainer = document.getElementById('ragStatus');
 
 ragContainer.classList.remove('hidden');
 ragStatusText.innerHTML = `<i class="fas fa-brain fa-spin"></i> AI ĐANG SUY LUẬN TỪ KHÓA...`;
-ragStatusText.style.color = "#fbbf24"; 
+ragStatusText.style.color = "#fbbf24"; // Màu vàng
 
 const prompt = `
 Nhiệm vụ: Bạn là một công cụ tìm kiếm thông minh (Search Engine Agent).
@@ -1542,12 +1347,13 @@ Output: lương, thu nhập, salary, income, payslip, thực nhận, thưởng, 
 `;
 
 try {
-const keywords = await runSingleDebateTurn(model, [{role: "user", content: prompt}], "null"); 
+// Gọi AI chạy nhanh (chế độ không stream cho lẹ)
+const keywords = await runSingleDebateTurn(model, [{role: "user", content: prompt}], "null"); // "null" id vì ta không in ra màn hình chat
 console.log("Smart Keywords:", keywords);
-return keywords; 
+return keywords; // Trả về chuỗi các từ khóa
 } catch (e) {
 console.error("Lỗi Smart Keyword:", e);
-return query; 
+return query; // Nếu lỗi thì dùng luôn câu gốc của user
 }
 }
 
@@ -1557,25 +1363,31 @@ const ragBar = document.getElementById('ragProgressBar');
 const ragText = document.getElementById('ragStatusText');
 const ragPercent = document.getElementById('ragProgressPercent');
 
+// Tách từ khóa
 const keywordList = keywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k.length > 0);
 const lines = content.split('\n');
 let relevantChunks = [];
 
+// UI Effect
 ragText.innerHTML = `<i class="fas fa-search text-blue-400"></i> SCANNING: ${keywordList.slice(0, 3).join(', ')}...`;
 
-const chunkSize = Math.ceil(lines.length / 50); 
+// Giả lập quét dữ liệu (scan effect)
+const chunkSize = Math.ceil(lines.length / 50); // Chia nhỏ để update thanh progress
 
 for (let i = 0; i < lines.length; i++) {
 const line = lines[i];
 
+// Update Progress bar mỗi khi quét xong 1 chunk
 if (i % chunkSize === 0) {
    const percent = Math.round((i / lines.length) * 100);
    ragBar.style.width = `${percent}%`;
    ragPercent.innerText = `${percent}%`;
-   await new Promise(r => setTimeout(r, 1)); 
+   await new Promise(r => setTimeout(r, 1)); // Delay cực nhỏ để UI kịp render
 }
 
+// Logic tìm kiếm đơn giản (Case-insensitive)
 if (keywordList.some(k => line.toLowerCase().includes(k))) {
+   // Lấy thêm context: 1 dòng trước và 1 dòng sau
    let contextBlock = line;
    if (i > 0) contextBlock = lines[i-1] + "\n" + contextBlock;
    if (i < lines.length - 1) contextBlock = contextBlock + "\n" + lines[i+1];
@@ -1584,6 +1396,7 @@ if (keywordList.some(k => line.toLowerCase().includes(k))) {
 }
 }
 
+// Hoàn tất
 ragBar.style.width = '100%';
 ragPercent.innerText = '100%';
 ragText.innerHTML = `<i class="fas fa-check-circle text-green-400"></i> SCAN COMPLETE!`;
@@ -1593,8 +1406,8 @@ if (relevantChunks.length === 0) {
 return content.substring(0, 3000) + "\n\n...[Đã cắt bớt vì quá dài]...";
 }
 
+// Ghép các đoạn tìm thấy, loại bỏ trùng lặp (Set)
 return [...new Set(relevantChunks)].join('\n---\n');
 }
 
 settingsModal.addEventListener('click', (e) => { if(e.target===settingsModal) closeSettings(); });
-
