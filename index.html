@@ -130,12 +130,6 @@
         <div class="modal-content">
             <h2 class="text-lg font-bold text-white mb-4">⚙️ Cấu Hình Hệ Thống</h2>
             
-            <div class="mb-4">
-                <label class="text-xs text-blue-400 font-bold block mb-1">ENDPOINT URL (Tùy chọn)</label>
-                <input type="text" id="customUrlInput" class="setting-input mb-1" placeholder="Mặc định: https://openrouter.ai/api/v1/chat/completions">
-                <div class="text-[10px] text-slate-500">Để trống sẽ dùng Openrouter. Nhập URL nếu dùng Local AI (Ollama) hoặc Enterprise.</div>
-            </div>
-
             <div class="mb-4 p-3 border border-yellow-500/30 bg-yellow-900/10 rounded-lg">
                 <label class="text-xs text-yellow-400 font-bold block mb-1">🔑 LICENSE KEY (Để mở khoá)</label>
                 <div class="flex gap-2">
@@ -143,7 +137,13 @@
                     <button onclick="verifyLicenseKey()" class="bg-yellow-600 text-white px-3 rounded text-xs font-bold hover:bg-yellow-500 whitespace-nowrap">
                         CHECK
                     </button>
-                </div>
+             </div>
+            
+            <div class="mb-4">
+                <label class="text-xs text-blue-400 font-bold block mb-1">ENDPOINT URL (Tùy chọn)</label>
+                <input type="text" id="customUrlInput" class="setting-input mb-1" placeholder="Mặc định: https://openrouter.ai/api/v1/chat/completions">
+                <div class="text-[10px] text-slate-500">Để trống sẽ dùng Openrouter. Nhập URL nếu dùng Local AI (Ollama) hoặc Enterprise.</div>
+            </div>
                 
             <div class="mb-4">
                 <label class="text-xs text-slate-400 font-bold block mb-1">API KEY</label>
