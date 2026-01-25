@@ -16,7 +16,7 @@
 const LICENSE_CONFIG = {
     FREE_CHAT_LIMIT: 15,          // 15 lượt chat thường miễn phí
     FREE_FEATURE_LIMIT: 3,       // 3 lượt cho mỗi tính năng VIP
-    SUPABASE_URL: 'https://uqchbponkvxkbdkpkgub.supabase.co', // ⚠️ THAY URL CỦA BẠN
+    SUPABASE_URL: 'https://uqchbponkvxkbdkpkgub.supabase.co, // ⚠️ THAY URL CỦA BẠN
     SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxY2hicG9ua3Z4a2Jka3BrZ3ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIxMDYsImV4cCI6MjA4NDgzODEwNn0.9xkQlWLymaxd3pndmVUr5TGWdJYwT7lIXM993QKtF3Q' // ⚠️ THAY KEY CỦA BẠN
 };
 
