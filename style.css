@@ -1,110 +1,95 @@
-/* =================================================================
-   📱 MOBILE ULTRA-COMPACT MODE (Dành cho màn hình < 640px)
-   ================================================================= */
-@media (max-width: 640px) {
-    
-    /* 1. GIẢM CỠ CHỮ TOÀN BỘ */
-    body, button, input, textarea, select {
-        font-size: 13px !important; /* Chữ nhỏ lại cho vừa mắt */
+/* =========================================
+   📱 MOBILE COMPACT FIX
+   (Thu nhỏ giao diện cho vừa màn hình điện thoại)
+   ========================================= */
+@media (max-width: 768px) {
+    /* 1. Giảm cỡ chữ cơ bản xuống 13px cho gọn */
+    body, .ai-bubble, .user-bubble, textarea {
+        font-size: 13px !important;
+        line-height: 1.4 !important;
     }
 
-    /* 2. HEADER SIÊU GỌN */
+    /* 2. Thu gọn Header & Các nút chế độ (Squad/Debate) */
     header {
-        padding: 8px 10px !important;
-        height: 50px; /* Cố định chiều cao header */
+        padding: 4px 6px !important;
     }
     header h1 {
-        font-size: 12px !important; /* Tên App nhỏ lại */
+        font-size: 12px !important;
     }
-    /* Thu nhỏ các nút bấm tròn trong Header (Chat mới, Lịch sử...) */
-    header button, header .w-7 {
-        width: 24px !important;
-        height: 24px !important;
-        font-size: 10px !important; /* Icon bên trong nhỏ lại */
-    }
-    /* Ẩn thanh cuộn của các nút toggle */
-    header .no-scrollbar {
-        gap: 6px !important; /* Giảm khoảng cách giữa các nút */
-    }
-    /* Thu nhỏ mấy cái nút gạt (Squad/Debate) */
     .squad-mode-toggle {
-        padding: 2px 6px !important;
-        font-size: 9px !important;
+        padding: 2px 5px !important;
+        gap: 3px !important;
+        border-radius: 6px !important;
+    }
+    /* Thu nhỏ công tắc gạt */
+    .toggle-switch {
+        width: 22px !important;
+        height: 12px !important;
+    }
+    .toggle-switch::after {
+        width: 8px !important;
+        height: 8px !important;
+        top: 2px !important;
+        left: 2px !important;
+    }
+    /* Chỉnh lại vị trí khi gạt nút nhỏ */
+    .squad-mode-toggle.active .toggle-switch::after,
+    .squad-mode-toggle.debate-active .toggle-switch::after,
+    .synthesis-active .toggle-switch::after {
+        transform: translateX(10px) !important;
     }
 
-    /* 3. KHUNG CHAT (MESSAGES) */
+    /* 3. Thu gọn bong bóng chat & khoảng cách */
     .messages-area {
         padding: 10px !important;
     }
     .message {
-        gap: 8px !important;
-        margin-bottom: 12px !important;
+        margin-bottom: 15px !important;
     }
-    .message-avatar {
-        width: 24px !important; 
-        height: 24px !important;
-        font-size: 10px !important;
-        margin-top: 2px; /* Căn chỉnh avatar */
-    }
-    .message-content {
+    .user-bubble {
         padding: 8px 12px !important;
-        border-radius: 10px !important;
-        font-size: 13px !important;
-        line-height: 1.4 !important;
+        border-radius: 12px 12px 0 12px !important;
+        max-width: 88% !important;
     }
-    /* Code block không được tràn màn hình */
-    pre {
-        padding: 8px !important;
-        font-size: 11px !important;
-        border-radius: 6px !important;
-        max-width: 100% !important;
-        white-space: pre-wrap !important; /* Tự xuống dòng nếu code quá dài */
+    .ai-bubble {
+        padding: 8px 10px !important;
+    }
+    
+    /* 4. Ép khung code không bị tràn màn hình */
+    .ai-bubble pre, .ai-bubble table {
+        max-width: calc(100vw - 40px) !important;
+        font-size: 11px !important; /* Code nhỏ lại để đỡ phải cuộn ngang nhiều */
     }
 
-    /* 4. KHUNG NHẬP LIỆU (INPUT) - QUAN TRỌNG NHẤT */
+    /* 5. Thu gọn thanh nhập liệu (Input Bar) */
     .input-area {
-        padding: 6px 8px !important; /* Sát lề hơn */
+        padding: 4px 6px 8px 6px !important;
     }
+    .input-wrapper {
+        min-height: 38px !important;
+        padding: 2px !important;
+    }
+    textarea {
+        padding: 8px !important;
+        min-height: 38px !important;
+        height: 38px; /* Mặc định thấp thôi */
+    }
+    /* Nút gửi/đính kèm nhỏ lại */
+    .action-btn {
+        width: 30px !important;
+        height: 30px !important;
+        margin-bottom: 2px !important;
+    }
+    .action-btn i {
+        font-size: 14px !important;
+    }
+
+    /* 6. Gợi ý (Chips) nhỏ lại */
     .suggestion-chips {
-        margin-bottom: 6px !important;
+        margin-bottom: 4px !important;
     }
     .chip {
         padding: 4px 8px !important;
         font-size: 10px !important;
-        height: 24px; /* Chip thấp xuống */
-        line-height: 14px;
     }
-    .input-wrapper {
-        padding: 6px 8px !important;
-        border-radius: 18px !important; /* Bo tròn kiểu Messenger */
-        align-items: center !important; /* Căn giữa dọc */
-    }
-    #userInput {
-        font-size: 13px !important;
-        padding: 4px 0 !important; /* Bỏ padding thừa */
-        min-height: 20px !important;
-    }
-    /* Nút gửi/đính kèm nhỏ lại */
-    .input-wrapper .action-btn {
-        padding: 5px !important;
-        width: 28px !important;
-        height: 28px !important;
-    }
-
-    /* 5. HISTORY PANEL & MODAL */
-    #historyPanel {
-        width: 80% !important; /* Chiếm 80% màn hình thay vì px cố định */
-        max-width: 300px;
-    }
-    .modal-content {
-        width: 90% !important;
-        padding: 15px !important;
-        margin: 0 auto;
-    }
-    
-    /* 6. ẨN BỚT FILE PREVIEW NẾU KHÔNG CẦN */
-    #filePreview {
-        font-size: 10px !important;
-        padding: 2px 6px !important;
-    }
-}ẻ
+}
