@@ -11,6 +11,15 @@ const LICENSE_CONFIG = {
     SUPABASE_URL: 'https://uqchbponkvxkbdkpkgub.supabase.co', // ⚠️ THAY BẰNG URL CỦA BẠN
     SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxY2hicG9ua3Z4a2Jka3BrZ3ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIxMDYsImV4cCI6MjA4NDgzODEwNn0.9xkQlWLymaxd3pndmVUr5TGWdJYwT7lIXM993QKtF3Q'                   // ⚠️ THAY BẰNG ANON KEY CỦA BẠN
 };
+const DB_CONFIG = {
+    NAME: 'UltimateAIChatDB',
+    VERSION: 1,
+    STORES: {
+        CHAT: 'chat_history',      // Lưu tin nhắn & HTML
+        LICENSE: 'user_license',   // Lưu Key bản quyền (Không bao giờ xóa tự động)
+        USAGE: 'usage_tracking'    // Lưu số lượt dùng Free (Chống reset lậu)
+    }
+ };
 let currentSessionId = 'session_' + new Date().getTime(); 
 // Lưu trữ và đồng bộ số lượt đã dùng với LocalStorage
 let usageData = {
@@ -1656,16 +1665,6 @@ initChat();
  * ==========================================================================================
  * Chịu trách nhiệm lưu trữ an toàn, chống mất dữ liệu và quản lý hạn 3 ngày.
  */
-
-const DB_CONFIG = {
-    NAME: 'UltimateAIChatDB',
-    VERSION: 1,
-    STORES: {
-        CHAT: 'chat_history',      // Lưu tin nhắn & HTML
-        LICENSE: 'user_license',   // Lưu Key bản quyền (Không bao giờ xóa tự động)
-        USAGE: 'usage_tracking'    // Lưu số lượt dùng Free (Chống reset lậu)
-    }
- };
 
  // 1. Mở kết nối Database
  function openDB() {
