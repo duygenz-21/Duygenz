@@ -161,25 +161,32 @@ function checkAndResetDailyUsage() {
  /**
  * --- LOGIC NGHIỆP VỤ: AUTO SAVE & AUTO CLEAR ---
  */
-
-// A. Lưu trạng thái Chat hiện tại (Gọi mỗi khi chat xong)
-async function saveSmartState() {
-    const now = new Date().getTime(); // Lấy thời gian dạng số (timestamp)
-
-    let firstUserMsg = chatHistory.find(m => m.role === 'user')?.content || "Cuộc trò chuyện mới";
-    if (firstUserMsg.length > 30) firstUserMsg = firstUserMsg.substring(0, 30) + "...";
+ // A. Lưu trạng thái Chat hiện tại (Gọi mỗi khi chat xong)
+ async function saveSmartState() {
+    const now = new Date().getTime(); 
     
+    // 1. Tạo tiêu đề tự động từ tin nhắn đầu tiên của user
+    let firstUserMsg = chatHistory.find(m => m.role === 'user')?.content || "Cuộc trò chuyện mới";
+    if (firstUserMsg.length > 40) firstUserMsg = firstUserMsg.substring(0, 40) + "...";
+
+    // 2. Đóng gói dữ liệu
     const chatData = {
-        id: currentSessionId,           // <--- QUAN TRỌNG: ID riêng
-        title: firstUserMsg,            // Tiêu đề để hiện trong list
-        history: chatHistory,
-        html: messagesArea.innerHTML,
-        lastActive: now
+        id: currentSessionId,           // <--- ID riêng biệt (VD: session_123456)
+        title: firstUserMsg,            // Tiêu đề hiển thị trong list
+        history: chatHistory,           // Mảng nội dung chat
+        html: messagesArea.innerHTML,   // Giao diện HTML
+        lastActive: now                 // Thời gian để sắp xếp
     };
     
+    // 3. QUAN TRỌNG: Lưu 2 bản
+    // Bản 1: Lưu theo ID (Để nằm trong danh sách Lịch sử)
+    await dbPut(DB_CONFIG.STORES.CHAT, currentSessionId, chatData);
+    
+    // Bản 2: Lưu đè vào 'current_session' (Để F5 trang web tự load lại cái này)
     await dbPut(DB_CONFIG.STORES.CHAT, 'current_session', chatData);
-    console.log('✅ Chat Saved (IndexedDB)');
-}
+    
+    console.log(`✅ Đã lưu chat: ${currentSessionId}`);
+}    
 
  // B. Lưu License Key (Gọi khi kích hoạt thành công)
  async function saveLicenseSecurely(key, data) {
