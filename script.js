@@ -16,7 +16,7 @@
 const LICENSE_CONFIG = {
     FREE_CHAT_LIMIT: 15,          // 15 lượt chat thường miễn phí
     FREE_FEATURE_LIMIT: 3,       // 3 lượt cho mỗi tính năng VIP
-    SUPABASE_URL: 'https://uqchbponkvxkbdkpkgub.supabase.co, // ⚠️ THAY URL CỦA BẠN
+    SUPABASE_URL: 'https://uqchbponkvxkbdkpkgub.supabase.co', // ⚠️ THAY URL CỦA BẠN
     SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxY2hicG9ua3Z4a2Jka3BrZ3ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIxMDYsImV4cCI6MjA4NDgzODEwNn0.9xkQlWLymaxd3pndmVUr5TGWdJYwT7lIXM993QKtF3Q' // ⚠️ THAY KEY CỦA BẠN
 };
 
@@ -91,10 +91,10 @@ let usageData = {
 };
 
 let securityState = {
-    // Mặc định check ở tin thứ 10
-    nextCheckAt: parseInt(localStorage.getItem('sec_next_check') || '10'), 
-    // Khoảng cách ban đầu là 10
-    currentGap: parseInt(localStorage.getItem('sec_current_gap') || '10')   
+    // Mặc định check ở tin thứ 5
+    nextCheckAt: parseInt(localStorage.getItem('sec_next_check') || '5'), 
+    // Khoảng cách ban đầu là 5
+    currentGap: parseInt(localStorage.getItem('sec_current_gap') || '5')   
 };
 
 let messageCounter = parseInt(localStorage.getItem('security_msg_counter') || '0');
@@ -445,13 +445,13 @@ async function validateLicenseKey(key) {
         });
         
         if (!response.ok) throw new Error('API error');
-        const data = await response.json(); [span_4](start_span)//[span_4](end_span)
+        const data = await response.json();
         
         if (data.length === 0) return { valid: false, message: 'License key không tồn tại!' };
         
         const license = data[0];
         const now = new Date();
-        const expiresAt = new Date(license.expires_at); [span_5](start_span)//[span_5](end_span)
+        const expiresAt = new Date(license.expires_at);
         
         // --- CÁC BƯỚC KIỂM TRA ---
 
@@ -461,18 +461,17 @@ async function validateLicenseKey(key) {
         // Check 2: License bị khóa
         if (!license.is_active) return { valid: false, message: 'License đã bị vô hiệu hóa bởi Admin!' };
 
-        // Check 3: [MỚI] Hết lượt chat (Quota)
-        // Nếu max_usage_count là null thì coi như không giới hạn lượt
+        // Check 3: Hết lượt chat (Quota)
         if (license.max_usage_count !== null && license.usage_count >= license.max_usage_count) {
             return { valid: false, message: 'Gói này đã dùng hết tổng số tin nhắn cho phép!' };
         }
 
         // --- CẬP NHẬT USAGE LÊN SERVER ---
-        // Chỉ cập nhật nếu License hợp lệ. Cộng thêm số gap vừa chat (để tiết kiệm request update liên tục)
+        // [FIXED] Đã xóa dòng chữ tiếng Việt thừa gây lỗi ở đây
         const usageToAdd = securityState.currentGap > 0 ? securityState.currentGap : 1;
         const newUsage = (license.usage_count || 0) + usageToAdd;
 
-        // Gọi API Patch để update số lượt dùng (Chạy ngầm, không await để chat nhanh hơn)
+        // Gọi API Patch để update số lượt dùng
         fetch(`${LICENSE_CONFIG.SUPABASE_URL}/rest/v1/licenses?license_key=eq.${encodeURIComponent(key)}`, {
             method: 'PATCH',
             headers: {
@@ -484,7 +483,6 @@ async function validateLicenseKey(key) {
             body: JSON.stringify({ usage_count: newUsage })
         }).catch(err => console.warn("Lỗi update usage:", err));
 
-        // Trả về kết quả OK
         return { 
             valid: true, 
             expiresAt: license.expires_at,
@@ -493,10 +491,10 @@ async function validateLicenseKey(key) {
 
     } catch (error) {
         console.error('License Check Error:', error);
-        // Lỗi mạng thì tạm tha (hoặc chặn tùy sếp), ở đây em để false để an toàn
         return { valid: false, message: 'Lỗi kết nối Server kiểm tra License.' };
     }
 }
+
 
 function checkFeaturePermission(feature) {
     checkAndResetDailyUsage();
