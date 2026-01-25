@@ -346,29 +346,15 @@ function addLicenseUI() {
     if (document.getElementById('licenseSection')) return;
 
     const licenseHTML = `
-      <div id="licenseSection" class="settings-section mt-4 pt-4 border-t border-slate-600">
-        <h3 class="text-yellow-400 font-bold mb-2"><i class="fas fa-id-card"></i> License System</h3>
-        
-        <div id="licenseStatus" class="mb-3 p-3 rounded bg-slate-900 border border-slate-700">
-          <div id="licenseStatusContent">
-            ${localStorage.getItem('license_key') ? 
-              `<div class="text-green-400 font-bold"><i class="fas fa-check-circle"></i> PREMIUM ACTIVE</div>` : 
-              `<div class="text-slate-400"><i class="fas fa-user-clock"></i> Free Tier: ${LICENSE_CONFIG.FREE_CHAT_LIMIT} chat/day</div>`}
-          </div>
-          <div id="licenseDaysLeft" class="text-xs text-slate-500 mt-1"></div>
-        </div>
-        
-        <div class="flex gap-2">
-            <input type="text" id="licenseKeyInput" placeholder="Paste License Key..." 
-                class="flex-1 p-2 rounded border border-slate-600 bg-slate-800 text-white text-sm"
-                value="${localStorage.getItem('license_key') || ''}">
-            <button onclick="handleActivateLicense()" class="px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-white font-bold text-sm">
-                <i class="fas fa-check"></i>
-            </button>
-            <button onclick="handleDeactivateLicense()" class="px-3 py-2 bg-red-600 hover:bg-red-700 rounded text-white text-sm">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
+    <div id="licenseSection" class="mt-4 pt-2 border-t border-slate-600">
+    <div id="licenseStatusContent" class="text-xs text-yellow-400 mb-1 font-bold"><i class="fas fa-key"></i> Kiểm tra License...</div>
+    
+    <div id="licenseDaysLeft" class="text-[10px] text-slate-500 mb-2 italic"></div>
+    <div class="flex gap-1">
+        <input id="licenseKeyInput" placeholder="Nhập License Key..." class="flex-1 bg-slate-800 text-white p-1 text-sm rounded border border-slate-600">
+        <button onclick="handleActivateLicense()" class="bg-green-600 text-white px-3 rounded hover:bg-green-500"><i class="fas fa-check"></i></button>
+        <button onclick="handleDeactivateLicense()" class="bg-red-900 text-white px-3 rounded hover:bg-red-700"><i class="fas fa-trash"></i></button>
+              </div>
         <div class="mt-2 text-[10px] text-slate-500 italic">
             * Liên hệ Admin để mua key nếu bạn cần dùng nhiều hơn.
         </div>
