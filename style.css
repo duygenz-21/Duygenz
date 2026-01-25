@@ -88,10 +88,11 @@ header {
    overflow-y: auto;
    padding: 1rem;
    width: 100%;
-   scroll-behavior: auto; /* Tắt smooth scroll native để JS xử lý mượt hơn khi stream */
+   scroll-behavior: auto; 
+   min-height: 0;
    -webkit-overflow-scrolling: touch;
    padding-bottom: 20px;
-   overscroll-behavior-y: contain; /* 👈 Giữ scroll nằm gọn trong khung chat, không lan ra body */
+   overscroll-behavior-y: contain; 
 }
 
 .messages-area::-webkit-scrollbar { width: 4px; }
