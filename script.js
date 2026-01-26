@@ -1,3 +1,6 @@
+ /* 1. CONFIGURATION & DATABASE SETUP (MUST BE FIRST)
+ */
+
 const LICENSE_CONFIG = {
     FREE_CHAT_LIMIT: 5,          // 5 lượt chat thường miễn phí
     FREE_FEATURE_LIMIT: 2,       // 2 lượt cho mỗi tính năng VIP
@@ -65,14 +68,13 @@ async function dbDelete(storeName, key) {
  */
 
 // User & Session State
-let currentSessionId = 'session_' + new Date().getTime(); 
 let usageData = {
-    freeChatUsed: parseInt(localStorage.getItem('free_chat_used') || '0'),
-    freeDebateUsed: parseInt(localStorage.getItem('free_debate_used') || '0'),
-    freeSynthesisUsed: parseInt(localStorage.getItem('free_synthesis_used') || '0'),
-    freeVisionUsed: parseInt(localStorage.getItem('free_vision_used') || '0'),
-    freeSquadUsed: parseInt(localStorage.getItem('free_squad_used') || '0'),
-    lastResetDate: localStorage.getItem('last_reset_date') || new Date().toDateString()
+    freeChatUsed: 0,
+    freeDebateUsed: 0,
+    freeSynthesisUsed: 0,
+    freeVisionUsed: 0,
+    freeSquadUsed: 0,
+    lastResetDate: new Date().toDateString() // Tạm thời lấy ngày hiện tại
 };
 
 let securityState = {
@@ -158,8 +160,8 @@ async function initChat() {
     // 1. Chạy khôi phục License (nhưng không load chat cũ)
     await restoreSystemState();
     
-    // 2. Cập nhật trạng thái hiển thị trên Header (VIP/Free)
-    renderHeaderStatus();
+    // 2. Các thủ tục kiểm tra định kỳ
+    await checkAndResetDailyUsage();
 
     // 3. BẮT BUỘC: Luôn hiển thị màn hình Welcome mặc định
     messagesArea.innerHTML = WELCOME_HTML;
@@ -185,15 +187,15 @@ async function initChat() {
         });
     }
 
-    // 7. Các thủ tục kiểm tra định kỳ
-    checkAndResetDailyUsage(); // Reset lượt free nếu qua ngày mới
+    // 7. Cập nhật trạng thái hiển thị trên Header (VIP/Free)
+    renderHeaderStatus();
     updateLicenseStatusDisplay(); // Cập nhật giao diện License
 }
 
 /**
  * ==========================================================================================
  * 5. HISTORY & SESSION MANAGEMENT
- * ==========================================================================================
+ * ========================================================================================
  */
 
 async function toggleHistoryPanel() {
@@ -293,36 +295,53 @@ function startNewChat() {
  * ==========================================================================================
  */
 
-function checkAndResetDailyUsage() {
+async function checkAndResetDailyUsage() {
     const today = new Date().toDateString();
     
-    if (usageData.lastResetDate !== today) {
+    // 1. Lấy dữ liệu từ IndexedDB lên
+    try {
+        const storedUsage = await dbGet(DB_CONFIG.STORES.USAGE, 'daily_stats');
         
-        // 1. Reset các giới hạn Free cũ (Giữ nguyên logic cũ)
-        Object.keys(usageData).forEach(key => {
-            if (key.startsWith('free') && key.endsWith('Used')) {
-                usageData[key] = 0;
-                localStorage.setItem(key, '0');
-            }
-        });
+        if (storedUsage) {
+            // Nếu có dữ liệu trong DB, gán vào biến global
+            usageData = storedUsage;
+        }
+    } catch (e) {
+        console.warn("⚠️ Không đọc được Usage từ DB, dùng mặc định.");
+    }
 
-        // 2. [MỚI] Reset logic check giãn cách về mặc định (dễ thở)
+    // 2. Kiểm tra xem có qua ngày mới chưa
+    if (usageData.lastResetDate !== today) {
+        console.log("🔄 New Day: Reset toàn bộ lượt dùng Free.");
+
+        // Reset về 0
+        usageData = {
+            freeChatUsed: 0,
+            freeDebateUsed: 0,
+            freeSynthesisUsed: 0,
+            freeVisionUsed: 0,
+            freeSquadUsed: 0,
+            lastResetDate: today
+        };
+        
+        // [QUAN TRỌNG] Reset cả các bộ đếm Security check
         securityState.nextCheckAt = 5;
         securityState.currentGap = 5;
+        messageCounter = 0;
+        
+        // Lưu các biến Security phụ vào localStorage (cái này giữ localStorage cũng được cho nhẹ)
         localStorage.setItem('sec_next_check', '5');
         localStorage.setItem('sec_current_gap', '5');
-        
-        // 3. [MỚI] Reset đếm tin nhắn tổng về 0
-        messageCounter = 0; 
         localStorage.setItem('security_msg_counter', '0');
-
-        // 4. Lưu ngày mới
-        usageData.lastResetDate = today;
-        localStorage.setItem('last_reset_date', today);
-        console.log('🔄 New Day: Đã reset toàn bộ giới hạn và bộ đếm Security.');
+        
+        // Dọn dẹp localStorage cũ cho sạch sẽ (Optional)
+        localStorage.removeItem('free_chat_used');
+        localStorage.removeItem('last_reset_date');
     }
-}
 
+    // 3. Lưu lại trạng thái mới nhất vào DB ngay lập tức
+    await syncUsageToDB();
+}
 
 async function saveSmartState() {
     const now = new Date().getTime(); 
@@ -474,8 +493,18 @@ async function validateLicenseKey(key) {
 
 
 function checkFeaturePermission(feature) {
-    checkAndResetDailyUsage();
+    // 1. Kiểm tra nhanh ngày tháng trên RAM (Không gọi DB ở đây để tránh delay/lỗi async)
+    const today = new Date().toDateString();
+    if (usageData.lastResetDate !== today) {
+        // Nếu đang chat mà qua ngày mới -> Bắt reload lại trang để reset sạch sẽ
+        alert("🔄 Đã qua ngày mới! Hệ thống sẽ tải lại để cấp lại lượt Free.");
+        location.reload(); 
+        return { allowed: false };
+    }
     
+    // checkAndResetDailyUsage(); <--- XÓA DÒNG NÀY (Đã xử lý ở initChat và logic trên)
+    
+    // --- [ĐOẠN CHECK LICENSE GIỮ NGUYÊN] ---
     const licenseKey = localStorage.getItem('license_key');
     if (licenseKey) {
         const licenseData = JSON.parse(localStorage.getItem('license_data') || '{}');
@@ -491,6 +520,7 @@ function checkFeaturePermission(feature) {
         }
     }
     
+    // --- [ĐOẠN CHECK LIMIT FREE GIỮ NGUYÊN] ---
     const limits = {
         'chat': { max: LICENSE_CONFIG.FREE_CHAT_LIMIT, usedKey: 'freeChatUsed', name: 'Chat thường' },
         'debate': { max: LICENSE_CONFIG.FREE_FEATURE_LIMIT, usedKey: 'freeDebateUsed', name: 'Debate Mode' },
@@ -511,8 +541,10 @@ function checkFeaturePermission(feature) {
     }
     
     usageData[limit.usedKey]++;
-    localStorage.setItem(limit.usedKey, usageData[limit.usedKey].toString());
-    syncUsageToDB();    
+    
+    // Lưu thẳng vào IndexedDB (Fire and forget - chạy ngầm không cần await)
+    syncUsageToDB().catch(e => console.error("Lỗi lưu Usage:", e));
+    
     return { 
         allowed: true, 
         type: 'free', 
