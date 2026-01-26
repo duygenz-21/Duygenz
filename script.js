@@ -1176,6 +1176,57 @@ function toggleDebateMode() {
     }
 }
 
+async function processAttachmentsForContext(userText) {
+    let contextData = "";
+    
+    // 1. XỬ LÝ ẢNH (VISION)
+    if (pendingVisionImages.length > 0) {
+        // Thông báo UI
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'user-message message';
+        msgDiv.innerHTML = `<div class="text-xs text-yellow-400 bg-slate-800 p-2 rounded"><i class="fas fa-eye fa-spin"></i> Đang soi ${pendingVisionImages.length} ảnh để lấy dữ liệu cho chế độ nâng cao...</div>`;
+        document.getElementById('messagesArea').appendChild(msgDiv);
+        
+        try {
+            const visionModel = config.visionModel || config.models[0];
+            const visionPrompt = [
+                { type: "text", text: "Hãy mô tả chi tiết những gì bạn thấy trong các hình ảnh này để dùng làm dữ liệu đầu vào cho một cuộc thảo luận/phân tích. Chỉ trả về nội dung mô tả, không thêm lời dẫn." },
+                ...pendingVisionImages.map(img => ({ type: "image_url", image_url: { url: img } }))
+            ];
+            
+            // Gọi model để đọc ảnh
+            const imageDesc = await runSingleDebateTurn(visionModel, [{role: "user", content: visionPrompt}], "null");
+            contextData += `\n[DỮ LIỆU TỪ HÌNH ẢNH]:\n"${imageDesc}"\n`;
+            
+            // Xóa thông báo tạm
+            msgDiv.remove();
+        } catch (e) {
+            console.error("Vision Error:", e);
+            contextData += `\n[LỖI ĐỌC ẢNH]: ${e.message}\n`;
+        }
+    }
+
+    // 2. XỬ LÝ FILE (TEXT/PDF/OCR)
+    if (currentFileContent) {
+        if (currentFileContent.length > 3000) {
+            // Nếu file dài quá thì dùng RAG lấy đoạn quan trọng
+            const keywords = await extractSmartKeywords(userText, config.models[0]);
+            const relevantText = await getRelevantContextWithStatus(keywords, currentFileContent);
+            contextData += `\n[DỮ LIỆU TỪ FILE (TRÍCH XUẤT)]: \n${relevantText}\n`;
+        } else {
+            // Nếu file ngắn thì lấy hết
+            contextData += `\n[DỮ LIỆU TỪ FILE]: \n${currentFileContent}\n`;
+        }
+    }
+
+    // 3. KẾT HỢP
+    if (contextData) {
+        return `${userText}\n\n=== HỆ THỐNG ĐÍNH KÈM DỮ LIỆU ===${contextData}\n=== HẾT DỮ LIỆU ===\n\nHãy sử dụng dữ liệu trên kết hợp với yêu cầu: "${userText}" để thực hiện nhiệm vụ.`;
+    }
+    
+    return userText;
+}
+
 async function startDebateSystem(topic) {
     const permission = checkFeaturePermission('debate');
     if (!permission.allowed) return alert(permission.message);
@@ -1185,23 +1236,28 @@ async function startDebateSystem(topic) {
         alert("⚠️ Cần chọn ít nhất 2 Models để chạy debate!");
         return;
     }
+
+    // --- [MỚI] BẮT ĐẦU XỬ LÝ FILE/ẢNH ---
+    setGeneratingState(true); // Khóa nút gửi trước
+    const enrichedTopic = await processAttachmentsForContext(topic);
+    // --- [MỚI] KẾT THÚC XỬ LÝ ---
     
     const modelA = config.models[0];
     const modelB = config.models[1];
     const maxTurns = 15;
     
     document.getElementById('userInput').value = "";
-    setGeneratingState(true);
     
+    // Sửa biến topic thành enrichedTopic ở đoạn prompt này
     const directorPrompt = `
-    Topic: "${topic}".
-    Task: Analyze this topic and identify 2 opposing perspectives (Debater A vs Debater B).
+    Topic/Context: """${enrichedTopic}"""
+    Task: Analyze this topic/data and identify 2 opposing perspectives (Debater A vs Debater B).
     
     Output format: JSON ONLY.
     {
-    "roleA": "Name of perspective 1 (e.g. AI Enthusiast)",
+    "roleA": "Name of perspective 1",
     "descA": "Core mindset of perspective 1 (Vietnamese)",
-    "roleB": "Name of perspective 2 (e.g. Traditional Humanist)",
+    "roleB": "Name of perspective 2",
     "descB": "Core mindset of perspective 2 (Vietnamese)"
     }`;
     
@@ -1371,11 +1427,17 @@ async function startSynthesisSystem(query) {
 
     if (config.models.length < 2) return alert("⚠️ Cần ít nhất 2 Models để hội tụ!");
     
-    document.getElementById('userInput').value = "";
+    // --- [MỚI] BẮT ĐẦU XỬ LÝ FILE/ẢNH ---
     setGeneratingState(true);
+    const enrichedQuery = await processAttachmentsForContext(query);
+    // --- [MỚI] KẾT THÚC ---
+
+    document.getElementById('userInput').value = "";
+    
+    // Hiển thị tin nhắn người dùng (giữ nguyên query ngắn gọn để hiển thị cho đẹp)
     appendUserMessage(query, `
     <div style="color:#fbbf24; font-weight:bold;">
-    <i class="fas fa-atom fa-spin"></i> KÍCH HOẠT SYNTHESIS
+    <i class="fas fa-atom fa-spin"></i> KÍCH HOẠT SYNTHESIS (Có kèm dữ liệu File/Ảnh)
     </div>
     <div class="text-xs text-slate-400 mt-1">Đang huy động ${config.models.length} chuyên gia...</div>
     `);
@@ -1419,7 +1481,7 @@ async function startSynthesisSystem(query) {
             rawContainer.appendChild(rawBox);
             
             try {
-                const rawRes = await runSingleDebateTurn(model, [{role: "user", content: query + " (Brief answer focused on facts)"}], "null");
+                const rawRes = await runSingleDebateTurn(model, [{role: "user", content: enrichedQuery + " (Brief answer focused on facts)"}], "null");
                 rawBox.innerHTML = `<span class="text-green-400">✔ ${model.split('/').pop()}</span>`;
                 return { model: model, content: rawRes };
             } catch (e) {
