@@ -94,7 +94,7 @@ let securityState = {
     // Mặc định check ở tin thứ 5
     nextCheckAt: parseInt(localStorage.getItem('sec_next_check') || '5'), 
     // Khoảng cách ban đầu là 5
-    currentGap: parseInt(localStorage.getItem('sec_current_gap') || '5')   
+    currentGap: parseInt(localStorage.getItem('se_current_gap') || '5')   
 };
 
 let messageCounter = parseInt(localStorage.getItem('security_msg_counter') || '0');
@@ -1205,6 +1205,7 @@ function toggleDebateMode() {
     }
 }
 
+
 async function startDebateSystem(topic) {
     const permission = checkFeaturePermission('debate');
     if (!permission.allowed) return alert(permission.message);
@@ -1218,19 +1219,30 @@ async function startDebateSystem(topic) {
     const modelA = config.models[0];
     const modelB = config.models[1];
     const maxTurns = 15;
+
+    // --- [MỚI] CHUẨN BỊ CONTEXT TỪ FILE ---
+    let contextData = "";
+    if (currentFileContent) {
+        // Cắt bớt nếu dài quá để tránh lỗi Token (lấy 15000 ký tự đầu)
+        contextData = `\n\n=== TÀI LIỆU THAM KHẢO (CONTEXT) ===\n${currentFileContent.substring(0, 15000)}...\n=== HẾT TÀI LIỆU ===\n`;
+    }
+    // -------------------------------------
     
     document.getElementById('userInput').value = "";
     setGeneratingState(true);
     
+    // [MỚI] Thêm Context vào để Director hiểu
     const directorPrompt = `
-    Topic: "${topic}".
-    Task: Analyze this topic and identify 2 opposing perspectives (Debater A vs Debater B).
+    User Topic: "${topic}".
+    ${contextData}
+    
+    Task: Analyze the Topic and the Context above (if any). Identify 2 opposing perspectives (Debater A vs Debater B) regarding this topic/document.
     
     Output format: JSON ONLY.
     {
-    "roleA": "Name of perspective 1 (e.g. AI Enthusiast)",
+    "roleA": "Name of perspective 1 (e.g. Supporter)",
     "descA": "Core mindset of perspective 1 (Vietnamese)",
-    "roleB": "Name of perspective 2 (e.g. Traditional Humanist)",
+    "roleB": "Name of perspective 2 (e.g. Critic)",
     "descB": "Core mindset of perspective 2 (Vietnamese)"
     }`;
     
@@ -1256,6 +1268,7 @@ async function startDebateSystem(topic) {
     <div class="scene-desc" style="color:#94a3b8; margin-top:5px;">
         <span style="color:#60a5fa">${roles.roleA}</span> VS <span style="color:#f87171">${roles.roleB}</span>
     </div>
+    <div class="text-[10px] text-slate-500 mt-1 italic">${contextData ? '(Có sử dụng tài liệu đính kèm)' : ''}</div>
     </div>
     `);
     
@@ -1286,10 +1299,19 @@ async function startDebateSystem(topic) {
         const currentDesc = isTurnA ? roles.descA : roles.descB;
         const opponentRole = isTurnA ? roles.roleB : roles.roleA;
         
+        // [MỚI] Nhúng Context vào System Prompt của từng lượt nói
         const systemPrompt = `
         Identity: You represent "${currentRole}" on "${topic}". Mindset: ${currentDesc}.
         Opponent: "${opponentRole}".
-        Instructions: Concise (max 60 words). Witty, Sarcastic. Roast opponent's logic. Vietnamese language.
+        
+        ${contextData} 
+
+        Instructions: 
+        - Debate based strictly on logic and the Context provided above.
+        - Keep it concise (max 80 words). 
+        - Witty, Sarcastic style. 
+        - Roast opponent's logic. 
+        - Language: Vietnamese.
         `;
         
         let userInstruction = turn === 1 ? 
@@ -1384,6 +1406,8 @@ function toggleSynthesisMode() {
     }
 }
 
+// TÌM VÀ THAY THẾ TOÀN BỘ HÀM startSynthesisSystem BẰNG ĐOẠN NÀY:
+
 async function startSynthesisSystem(query) {
     const permission = checkFeaturePermission('synthesis');
     if (!permission.allowed) return alert(permission.message);
@@ -1392,11 +1416,30 @@ async function startSynthesisSystem(query) {
     
     document.getElementById('userInput').value = "";
     setGeneratingState(true);
+
+    // --- [MỚI] CHUẨN BỊ PROMPT KÈM FILE ---
+    let fullPrompt = query;
+    let fileNote = "";
+    if (currentFileContent) {
+        fileNote = "(Có File)";
+        // Ghép file vào câu hỏi
+        fullPrompt = `
+        === DOCUMENT CONTEXT ===
+        ${currentFileContent.substring(0, 20000)}
+        === END DOCUMENT ===
+
+        USER QUESTION: ${query}
+        
+        INSTRUCTION: Answer the question based strictly on the DOCUMENT CONTEXT above. Provide facts and details from the file.
+        `;
+    }
+    // -------------------------------------
+
     appendUserMessage(query, `
     <div style="color:#fbbf24; font-weight:bold;">
-    <i class="fas fa-atom fa-spin"></i> KÍCH HOẠT SYNTHESIS
+    <i class="fas fa-atom fa-spin"></i> KÍCH HOẠT SYNTHESIS ${fileNote}
     </div>
-    <div class="text-xs text-slate-400 mt-1">Đang huy động ${config.models.length} chuyên gia...</div>
+    <div class="text-xs text-slate-400 mt-1">Đang huy động ${config.models.length} chuyên gia soi tài liệu...</div>
     `);
     
     const responseGroup = createResponseGroup();
@@ -1413,10 +1456,10 @@ async function startSynthesisSystem(query) {
     </div>
     <div class="ai-bubble">
     <div id="syn-status-${synthesisId}">
-        <div class="synthesis-step active" id="step1-${synthesisId}">1. 📡 Thu thập...</div>
-        <div class="synthesis-step" id="step2-${synthesisId}">2. ⚖️ Đối chiếu...</div>
-        <div class="synthesis-step" id="step3-${synthesisId}">3. 🗑️ Khử nhiễu...</div>
-        <div class="synthesis-step" id="step4-${synthesisId}">4. ✨ Tinh chỉnh...</div>
+        <div class="synthesis-step active" id="step1-${synthesisId}">1. 📡 Thu thập dữ liệu...</div>
+        <div class="synthesis-step" id="step2-${synthesisId}">2. ⚖️ Đối chiếu thông tin...</div>
+        <div class="synthesis-step" id="step3-${synthesisId}">3. 🗑️ Khử nhiễu & Hallucination...</div>
+        <div class="synthesis-step" id="step4-${synthesisId}">4. ✨ Tinh chỉnh câu trả lời...</div>
     </div>
     <div id="${synthesisId}" class="mt-4 hidden"></div>
     </div>
@@ -1434,11 +1477,12 @@ async function startSynthesisSystem(query) {
             const rawBox = document.createElement('div');
             rawBox.className = 'raw-card';
             rawBox.id = `raw-${index}-${synthesisId}`;
-            rawBox.innerText = `⏳ ${model.split('/').pop()} đang nghĩ...`;
+            rawBox.innerText = `⏳ ${model.split('/').pop()} đang đọc tài liệu...`;
             rawContainer.appendChild(rawBox);
             
             try {
-                const rawRes = await runSingleDebateTurn(model, [{role: "user", content: query + " (Brief answer focused on facts)"}], "null");
+                // [FIX] Dùng fullPrompt thay vì query gốc
+                const rawRes = await runSingleDebateTurn(model, [{role: "user", content: fullPrompt}], "null");
                 rawBox.innerHTML = `<span class="text-green-400">✔ ${model.split('/').pop()}</span>`;
                 return { model: model, content: rawRes };
             } catch (e) {
@@ -1456,6 +1500,41 @@ async function startSynthesisSystem(query) {
         setGeneratingState(false);
         return;
     }
+    
+    const leaderModel = config.models[0]; 
+    updateStep(2);
+    // Đoạn này giữ nguyên vì nó tổng hợp từ output của các con AI trên (vốn đã đọc file rồi)
+    const combinedInput = rawResults.map((r, i) => `[SOURCE ${i+1} - ${r.model}]:\n${r.content}`).join("\n\n---\n\n");
+    
+    const filterPrompt = `
+    Role: Consensus Engine.
+    
+    You have received answers from multiple AI Agents regarding a user query about a document.
+    Raw Data:
+    """${combinedInput}"""
+    
+    Task:
+    1. Find Consensus among the agents.
+    2. Resolve Conflicts.
+    3. Remove Hallucinations (Verify logic).
+    4. Synthesize into ONE final comprehensive answer (Vietnamese).
+    `;
+    
+    updateStep(3);
+    await new Promise(r => setTimeout(r, 800)); 
+    
+    updateStep(4);
+    try {
+        document.getElementById(`syn-status-${synthesisId}`).classList.add('hidden');
+        document.getElementById(synthesisId).classList.remove('hidden');
+        await runStream(leaderModel, [{role: "system", content: "Expert Synthesizer."}, {role: "user", content: filterPrompt}], mainCard.parentElement, synthesisId);
+    } catch (e) {
+        document.getElementById(synthesisId).innerHTML = `Error: ${e.message}`;
+    }
+    
+    setGeneratingState(false);
+    renderHeaderStatus();
+}
     
     const leaderModel = config.models[0]; 
     updateStep(2);
