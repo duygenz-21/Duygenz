@@ -620,14 +620,16 @@ async function runPython(btn) {
     const actionBar = btn.closest('.code-action-bar');
     const preElement = actionBar.previousElementSibling;
     const codeElement = preElement.querySelector('code');
-    const code = codeElement ? codeElement.innerText : preElement.innerText;
+    let code = codeElement ? codeElement.innerText : preElement.innerText;
 
-    // 1. Tạo hoặc lấy khung hiển thị output
+    // 1. Thụt lề code người dùng thêm 4 khoảng để nằm trong khối try
+    const indentedCode = code.split('\n').map(line => '    ' + line).join('\n');
+
+    // 2. Tạo hoặc lấy khung hiển thị output
     let outputDiv = actionBar.nextElementSibling;
     if (!outputDiv || !outputDiv.classList.contains('python-output')) {
         outputDiv = document.createElement('div');
         outputDiv.className = 'python-output';
-        // Chèn ngay sau thanh công cụ
         actionBar.parentNode.insertBefore(outputDiv, actionBar.nextSibling);
     }
 
@@ -637,31 +639,29 @@ async function runPython(btn) {
     outputDiv.classList.add('active');
 
     try {
-        // 2. Load Pyodide nếu chưa có
+        // 3. Load Pyodide nếu chưa có
         if (!window.loadPyodide) await loadScript('pyodide-script', RESOURCES.pyodide);
 
         if (!pyodideReady) {
             outputDiv.innerHTML = '<span class="text-yellow-400"><i class="fas fa-box-open fa-spin"></i> Đang tải thư viện: Matplotlib, Pandas...</span>';
             
-            // [QUAN TRỌNG] Phải khai báo indexURL để load đúng packages
             pyodideObj = await loadPyodide({
                 indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
             });
             
-            // Load các thư viện nặng
             await pyodideObj.loadPackage(["matplotlib", "pandas", "numpy"]);
             pyodideReady = true;
         }
 
         outputDiv.innerHTML = '<span class="text-green-400"><i class="fas fa-terminal fa-spin"></i> Đang thực thi Code...</span>';
 
-        // 3. Cấu hình Matplotlib sắc nét hơn (DPI 100 -> 144)
+        // 4. Cấu hình Matplotlib sắc nét hơn
         const isMobile = window.innerWidth < 768;
-        const figSize = isMobile ? "[6, 6]" : "[10, 6]"; // Mobile thì ảnh vuông, PC thì chữ nhật
+        const figSize = isMobile ? "[6, 6]" : "[10, 6]";
         
         const wrapperCode = `
 import matplotlib
-matplotlib.use("Agg") # [FIX] Bắt buộc dùng backend này để không lỗi Canvas
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import io, base64, sys, json
 import pandas as pd
@@ -688,7 +688,7 @@ sys.stdout = io.StringIO()
 
 try:
     # --- USER CODE START ---
-${code}
+${indentedCode}
     # --- USER CODE END ---
 except Exception as e:
     print(f"Lỗi Runtime: {e}")
@@ -708,6 +708,29 @@ json.dumps({"text": sys.stdout.getvalue(), "image": img_str})
 
         const resultJSON = await pyodideObj.runPythonAsync(wrapperCode);
         const result = JSON.parse(resultJSON);
+
+        // 5. Render Kết quả
+        let html = "";
+        
+        if (result.text) {
+            html += `<div class="mb-3 text-slate-300 whitespace-pre-wrap font-mono text-sm border-b border-slate-700 pb-2">${result.text}</div>`;
+        }
+        
+        if (result.image) {
+            html += `<div class="flex justify-center"><img src="data:image/png;base64,${result.image}" alt="Chart" style="max-width:100%; border-radius:8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>`;
+        }
+        
+        if (!html) html = `<span class="text-slate-500 italic">✅ Code đã chạy xong (Không có output).</span>`;
+
+        outputDiv.innerHTML = html;
+
+    } catch (err) {
+        console.error(err);
+        outputDiv.innerHTML = `<div class="text-red-400 bg-red-900/20 p-2 rounded border border-red-500/50">
+            <strong>⚠️ Lỗi Python:</strong><br>${err.message}
+        </div>`;
+    }
+}
 
         // 4. Render Kết quả
         let html = "";
