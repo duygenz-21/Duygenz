@@ -619,9 +619,49 @@ const loadScript = (id, src) => {
 async function runPython(btn) {
     const actionBar = btn.closest('.code-action-bar');
     const preElement = actionBar.previousElementSibling;
-    const wrapperCode = `
+    const codeElement = preElement.querySelector('code');
+    const code = codeElement ? codeElement.innerText : preElement.innerText;
+
+    // 1. Tạo hoặc lấy khung hiển thị output
+    let outputDiv = actionBar.nextElementSibling;
+    if (!outputDiv || !outputDiv.classList.contains('python-output')) {
+        outputDiv = document.createElement('div');
+        outputDiv.className = 'python-output';
+        // Chèn ngay sau thanh công cụ
+        actionBar.parentNode.insertBefore(outputDiv, actionBar.nextSibling);
+    }
+
+    // Reset trạng thái hiển thị
+    outputDiv.style.display = 'block'; 
+    outputDiv.innerHTML = '<span class="text-yellow-400"><i class="fas fa-spinner fa-spin"></i> Đang gọi môi trường Python (lần đầu sẽ lâu)...</span>';
+    outputDiv.classList.add('active');
+
+    try {
+        // 2. Load Pyodide nếu chưa có
+        if (!window.loadPyodide) await loadScript('pyodide-script', RESOURCES.pyodide);
+
+        if (!pyodideReady) {
+            outputDiv.innerHTML = '<span class="text-yellow-400"><i class="fas fa-box-open fa-spin"></i> Đang tải thư viện: Matplotlib, Pandas...</span>';
+            
+            // [QUAN TRỌNG] Phải khai báo indexURL để load đúng packages
+            pyodideObj = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
+            });
+            
+            // Load các thư viện nặng
+            await pyodideObj.loadPackage(["matplotlib", "pandas", "numpy"]);
+            pyodideReady = true;
+        }
+
+        outputDiv.innerHTML = '<span class="text-green-400"><i class="fas fa-terminal fa-spin"></i> Đang thực thi Code...</span>';
+
+        // 3. Cấu hình Matplotlib sắc nét hơn (DPI 100 -> 144)
+        const isMobile = window.innerWidth < 768;
+        const figSize = isMobile ? "[6, 6]" : "[10, 6]"; // Mobile thì ảnh vuông, PC thì chữ nhật
+        
+        const wrapperCode = `
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use("Agg") # [FIX] Bắt buộc dùng backend này để không lỗi Canvas
 import matplotlib.pyplot as plt
 import io, base64, sys, json
 import pandas as pd
@@ -647,13 +687,10 @@ plt.rcParams.update({
 sys.stdout = io.StringIO()
 
 try:
-    pass # [FIX] Thêm pass để tránh lỗi nếu indentedCode chỉ toàn comment
     # --- USER CODE START ---
-${indentedCode}
+${code}
     # --- USER CODE END ---
 except Exception as e:
-    import traceback
-    traceback.print_exc() # [FIX] In chi tiết lỗi để dễ debug hơn
     print(f"Lỗi Runtime: {e}")
 
 # Xử lý ảnh biểu đồ
@@ -668,6 +705,7 @@ if plt.get_fignums():
 # Trả về JSON
 json.dumps({"text": sys.stdout.getvalue(), "image": img_str})
 `;
+
         const resultJSON = await pyodideObj.runPythonAsync(wrapperCode);
         const result = JSON.parse(resultJSON);
 
