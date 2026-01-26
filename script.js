@@ -408,10 +408,10 @@ async function performSilentSecurityCheck() {
     if (!result.valid) {
         console.warn('🚨 PHÁT HIỆN GIAN LẬN/HẾT HẠN: ' + result.message);
         
-        //1.Xóa sạch dấu vết Key ngay lập tức
+        // 1. Xóa sạch dấu vết Key ngay lập tức
         localStorage.removeItem('license_key');
         localStorage.removeItem('license_data');
-        await dbDelete(DB_CONFIG.STORES.LICENSE, 'active_key'); [span_1](start_span)[span_2](start_span)// Xóa cả trong DB[span_1](end_span)[span_2](end_span)
+        await dbDelete(DB_CONFIG.STORES.LICENSE, 'active_key'); // Xóa cả trong DB
 
         // 2. Thông báo và "đá" về chế độ Free
         alert(`⚠️ CẢNH BÁO BẢO MẬT\n\nLicense của bạn không còn hợp lệ sau đợt kiểm tra định kỳ.\nLý do: ${result.message}\n\nHệ thống sẽ chuyển về chế độ FREE.`);
@@ -423,7 +423,7 @@ async function performSilentSecurityCheck() {
         console.log('✅ Security Check: License vẫn "sống" tốt.');
         const newData = { expiresAt: result.expiresAt, daysLeft: result.daysLeft };
         localStorage.setItem('license_data', JSON.stringify(newData));
-        await saveLicenseSecurely(key, newData); [span_3](start_span)//[span_3](end_span)
+        await saveLicenseSecurely(key, newData); 
     }
 }
 
@@ -588,7 +588,7 @@ async function handleDeactivateLicense() {
         localStorage.removeItem('license_data');
         
         // 2. Xóa sạch trong IndexedDB (Quan trọng)
-        await dbDelete(DB_CONFIG.STORES.LICENSE, 'active_key'); [span_7](start_span)//[span_7](end_span)
+        await dbDelete(DB_CONFIG.STORES.LICENSE, 'active_key');
 
         // 3. Reset UI
         updateLicenseStatusDisplay();
@@ -598,12 +598,11 @@ async function handleDeactivateLicense() {
     }
 }
 
-/7. CORE UTILITIES (Resource Loader, Python, OCR, PDF)/
 
 const loadScript = (id, src) => {
     return new Promise((resolve, reject) => {
         if (document.getElementById(id)) { resolve(); return; }
-        console.log(`⏳ Đang gọi: ${id}...`);
+        console.log(`⏳ Đang }: ${id}...`);
         const script = document.createElement('script');
         script.id = id;
         script.src = src;
@@ -616,61 +615,85 @@ const loadScript = (id, src) => {
     });
 };
 
-// Python Engine
+
 async function runPython(btn) {
     const actionBar = btn.closest('.code-action-bar');
     const preElement = actionBar.previousElementSibling;
     const codeElement = preElement.querySelector('code');
     const code = codeElement ? codeElement.innerText : preElement.innerText;
 
+    // 1. Tạo hoặc lấy khung hiển thị output
     let outputDiv = actionBar.nextElementSibling;
     if (!outputDiv || !outputDiv.classList.contains('python-output')) {
         outputDiv = document.createElement('div');
         outputDiv.className = 'python-output';
+        // Chèn ngay sau thanh công cụ
         actionBar.parentNode.insertBefore(outputDiv, actionBar.nextSibling);
     }
 
-    outputDiv.innerHTML = '<span class="text-yellow-400"><i class="fas fa-spinner fa-spin"></i> Đang gọi chuyên gia Python dậy...</span>';
+    // Reset trạng thái hiển thị
+    outputDiv.style.display = 'block'; 
+    outputDiv.innerHTML = '<span class="text-yellow-400"><i class="fas fa-spinner fa-spin"></i> Đang gọi môi trường Python (lần đầu sẽ lâu)...</span>';
     outputDiv.classList.add('active');
 
     try {
+        // 2. Load Pyodide nếu chưa có
         if (!window.loadPyodide) await loadScript('pyodide-script', RESOURCES.pyodide);
 
         if (!pyodideReady) {
-            outputDiv.innerHTML = '<span class="text-yellow-400"><i class="fas fa-cogs fa-spin"></i> Đang khởi tạo môi trường ảo... (Chờ xíu)</span>';
-            pyodideObj = await loadPyodide();
+            outputDiv.innerHTML = '<span class="text-yellow-400"><i class="fas fa-box-open fa-spin"></i> Đang tải thư viện: Matplotlib, Pandas...</span>';
+            
+            // [QUAN TRỌNG] Phải khai báo indexURL để load đúng packages
+            pyodideObj = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
+            });
+            
+            // Load các thư viện nặng
             await pyodideObj.loadPackage(["matplotlib", "pandas", "numpy"]);
             pyodideReady = true;
         }
 
-        outputDiv.innerHTML = '<span class="text-green-400"><i class="fas fa-spinner fa-spin"></i> Đang xử lý...</span>';
+        outputDiv.innerHTML = '<span class="text-green-400"><i class="fas fa-terminal fa-spin"></i> Đang thực thi Code...</span>';
 
+        // 3. Cấu hình Matplotlib sắc nét hơn (DPI 100 -> 144)
         const isMobile = window.innerWidth < 768;
-        const figSize = isMobile ? "[6, 6]" : "[10, 6]";
-        const fontSize = isMobile ? "12" : "10";
-
-                const wrapperCode = `
+        const figSize = isMobile ? "[6, 6]" : "[10, 6]"; // Mobile thì ảnh vuông, PC thì chữ nhật
+        
+        const wrapperCode = `
+import matplotlib
+matplotlib.use("Agg") # [FIX] Bắt buộc dùng backend này để không lỗi Canvas
 import matplotlib.pyplot as plt
 import io, base64, sys, json
+import pandas as pd
+import numpy as np
 
+# Cấu hình giao diện Dark Mode cho biểu đồ
 plt.style.use('dark_background')
 plt.rcParams.update({
-'figure.facecolor': '#0b1121', 
-'axes.facecolor': '#0b1121', 
-'text.color': '#cbd5e1', 
-'axes.labelcolor': '#cbd5e1', 
-'xtick.color': '#cbd5e1', 
-'ytick.color': '#cbd5e1', 
-'grid.color': '#334155',
-'font.size': ${fontSize},
-'figure.figsize': ${figSize},
-'figure.dpi': 100
+    'figure.facecolor': '#0b1121', 
+    'axes.facecolor': '#0b1121', 
+    'text.color': '#cbd5e1', 
+    'axes.labelcolor': '#cbd5e1', 
+    'xtick.color': '#cbd5e1', 
+    'ytick.color': '#cbd5e1', 
+    'grid.color': '#334155',
+    'font.family': 'sans-serif',
+    'font.size': 10,
+    'figure.figsize': ${figSize},
+    'figure.dpi': 144
 })
 
+# Bắt output print()
 sys.stdout = io.StringIO()
 
+try:
+    # --- USER CODE START ---
 ${code}
+    # --- USER CODE END ---
+except Exception as e:
+    print(f"Lỗi Runtime: {e}")
 
+# Xử lý ảnh biểu đồ
 img_str = ""
 if plt.get_fignums():
     buf = io.BytesIO()
@@ -679,22 +702,35 @@ if plt.get_fignums():
     img_str = base64.b64encode(buf.read()).decode('utf-8')
     plt.clf()
 
+# Trả về JSON
 json.dumps({"text": sys.stdout.getvalue(), "image": img_str})
 `;
 
         const resultJSON = await pyodideObj.runPythonAsync(wrapperCode);
         const result = JSON.parse(resultJSON);
 
+        // 4. Render Kết quả
         let html = "";
-        if (result.text) html += `<div class="mb-2 text-slate-300 whitespace-pre-wrap text-sm">${result.text}</div>`;
-        if (result.image) html += `<img src="data:image/png;base64,${result.image}" alt="Chart">`;
-        if (!html) html = `<span class="text-slate-500 italic">Code chạy xong (Không có output).</span>`;
+        
+        // Hiển thị Text (Print)
+        if (result.text) {
+            html += `<div class="mb-3 text-slate-300 whitespace-pre-wrap font-mono text-sm border-b border-slate-700 pb-2">${result.text}</div>`;
+        }
+        
+        // Hiển thị Biểu đồ (Image)
+        if (result.image) {
+            html += `<div class="flex justify-center"><img src="data:image/png;base64,${result.image}" alt="Chart" style="max-width:100%; border-radius:8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>`;
+        }
+        
+        if (!html) html = `<span class="text-slate-500 italic">✅ Code đã chạy xong (Không có output).</span>`;
 
         outputDiv.innerHTML = html;
 
     } catch (err) {
-        outputDiv.innerHTML = `<span class="text-red-400">⚠️ Lỗi Code: ${err.message}</span>`;
         console.error(err);
+        outputDiv.innerHTML = `<div class="text-red-400 bg-red-900/20 p-2 rounded border border-red-500/50">
+            <strong>⚠️ Lỗi Python:</strong><br>${err.message}
+        </div>`;
     }
 }
 
