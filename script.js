@@ -1,6 +1,3 @@
- / * 1. CONFIGURATION & DATABASE SETUP (MUST BE FIRST)
- */
-
 const LICENSE_CONFIG = {
     FREE_CHAT_LIMIT: 5,          // 5 lượt chat thường miễn phí
     FREE_FEATURE_LIMIT: 2,       // 2 lượt cho mỗi tính năng VIP
