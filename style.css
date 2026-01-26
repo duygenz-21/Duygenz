@@ -752,3 +752,59 @@ textarea {
 .raw-card {
    min-width: 200px; font-size: 10px; background: #000; border: 1px solid #334155; padding: 5px; border-radius: 4px; max-height: 100px; overflow: hidden;
 }
+/* --- AI CODE STUDIO (IDE) STYLES --- */
+.ide-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 9999; background: #0f172a;
+    display: flex; flex-direction: column;
+    animation: slideUpReferee 0.3s ease-out; /* Tái sử dụng animation có sẵn */
+}
+.ide-overlay.hidden { display: none !important; }
+
+.ide-header {
+    height: 50px; flex-shrink: 0;
+    background: #1e293b; border-bottom: 1px solid #334155;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.ide-body { flex: 1; display: flex; overflow: hidden; }
+
+/* Cột Editor */
+.ide-editor-container { 
+    width: 60%; 
+    border-right: 1px solid #334155; 
+    display: flex; flex-direction: column;
+}
+
+/* Cột Output */
+.ide-output-container { 
+    width: 40%; 
+    background: #0b1121; 
+    display: flex; flex-direction: column;
+}
+.ide-output-header {
+    padding: 5px 10px; background: #151e32; 
+    border-bottom: 1px solid #334155;
+    display: flex; justify-content: space-between;
+}
+#ideConsole {
+    flex: 1; overflow-y: auto; color: #cbd5e1;
+    padding: 10px;
+}
+
+/* Tùy chỉnh màu log trong Console ảo */
+.log-info { color: #cbd5e1; border-bottom: 1px dashed #334155; padding: 2px 0; }
+.log-warn { color: #facc15; }
+.log-error { color: #f87171; background: rgba(239, 68, 68, 0.1); padding: 2px; }
+.log-result { color: #2dd4bf; font-weight: bold; margin-top: 5px; }
+
+/* Responsive cho Mobile */
+@media (max-width: 768px) {
+    .ide-body { flex-direction: column; }
+    .ide-editor-container { width: 100%; height: 60%; border-right: none; border-bottom: 1px solid #334155; }
+    .ide-output-container { width: 100%; height: 40%; }
+}
+
+/* Override CodeMirror để full height */
+.CodeMirror { height: 100% !important; font-family: 'JetBrains Mono', monospace !important; font-size: 14px; }
