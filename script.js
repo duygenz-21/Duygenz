@@ -1613,6 +1613,7 @@ function useSuggestion(t) { userInput.value = t; autoResize(userInput); userInpu
 function confirmClearChat() { if(confirm("Xoá sạch sẽ?")) { messagesArea.innerHTML=WELCOME_HTML; chatHistory=[{role:"system",content:config.systemPrompt}]; } }
 
 function openSettings() {
+    // 1. Load các cài đặt cũ lên Form
     document.getElementById('apiKeyInput').value = config.apiKey;
     document.getElementById('customUrlInput').value = config.customUrl;
     document.getElementById('systemPromptInput').value = config.systemPrompt;
@@ -1626,9 +1627,10 @@ function openSettings() {
     }
     document.getElementById('visionModelInput').value = config.visionModel;
     
+    // Xử lý nút gạt Vision
     const vBtn = document.getElementById('visionToggleBtn');
     if(vBtn) {
-        const switchEl = vBtn; 
+        const switchEl = vBtn.querySelector('.toggle-switch') || vBtn; // Fix selector phòng hờ
         if(config.useVision) {
             switchEl.style.background = '#fbbf24';
             switchEl.innerHTML = '<div style="position:absolute; top:2px; left:14px; width:14px; height:14px; background:white; border-radius:50%;"></div>';
@@ -1638,10 +1640,21 @@ function openSettings() {
         }
     }
     
+    // 2. Render danh sách Model
     renderModelList();
-    addLicenseUI();
+
+    // 3. [FIXED] Xóa dòng addLicenseUI() bị thiếu đi
+    // addLicenseUI(); <--- Đã xóa dòng này
+    
+    // 4. Cập nhật trạng thái License
     updateLicenseStatusDisplay();
-    settingsModal.classList.add('active');
+
+    // 5. Mở Modal
+    if(settingsModal) {
+        settingsModal.classList.add('active');
+    } else {
+        console.error("Không tìm thấy ID 'settingsModal' trong HTML!");
+    }
 }
 
 function renderModelList() {
