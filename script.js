@@ -585,7 +585,7 @@ async function handleDeactivateLicense() {
 const loadScript = (id, src) => {
     return new Promise((resolve, reject) => {
         if (document.getElementById(id)) { resolve(); return; }
-        console.log(`⏳ Đang }: ${id}...`);
+        console.log(`⏳ Đang tải: ${id}...`);
         const script = document.createElement('script');
         script.id = id;
         script.src = src;
