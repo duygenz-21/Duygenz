@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Streaming Pro v6.0 (Free Core) 🚀</title>
     
-    <!-- CSS Libraries (CDN) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <link rel="stylesheet" href="style.css">
     
-    <!-- JavaScript Libraries (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -20,12 +18,9 @@
 </head>
 
 <body>
-    <!-- Main Chat Container -->
     <div class="chat-container">
         
-        <!-- Header -->
         <header class="p-2 flex justify-between items-center bg-slate-900/95 border-b border-slate-700 backdrop-blur z-50">
-            <!-- App Title -->
             <div class="flex flex-col overflow-hidden mr-2">
                 <h1 class="text-sm font-bold text-white whitespace-nowrap">
                     AI Pro <span class="text-xs font-normal text-green-400">v6.0 Free</span>
@@ -33,9 +28,7 @@
                 <span id="headerStatus" class="text-[10px] text-slate-400 truncate">Core Ready</span>
             </div>
             
-            <!-- Control Buttons -->
             <div class="flex items-center gap-3 overflow-x-auto no-scrollbar">
-                <!-- Mode Toggles -->
                 <div id="squadModeToggle" class="squad-mode-toggle border border-slate-600 px-2 py-1 rounded cursor-pointer flex items-center gap-1" onclick="toggleSquadMode()">
                     <span class="text-[10px]">Squad</span>
                     <div class="toggle-switch scale-75 origin-right"></div>
@@ -51,7 +44,6 @@
                     <div class="toggle-switch scale-75 origin-right bg-yellow-900/20"></div>
                 </div>
                 
-                <!-- Utility Buttons -->
                 <div class="flex gap-1 border-l border-slate-700 pl-2">
                     <button onclick="toggleHistoryPanel()" class="w-7 h-7 rounded bg-slate-800 text-slate-400 hover:text-green-400" title="Lịch sử Chat">
                         <i class="fas fa-history text-xs"></i>
@@ -66,19 +58,15 @@
             </div>
         </header>
         
-        <!-- Messages Area -->
         <div id="messagesArea" class="messages-area"></div>
         
-        <!-- Input Area -->
         <div class="input-area pb-4 bg-[#0b1121]">
-            <!-- Suggestion Chips -->
             <div class="suggestion-chips mb-2" id="suggestionChips">
                 <div class="chip" onclick="useSuggestion('Tóm tắt ngắn gọn')">📝 Tóm tắt</div>
                 <div class="chip" onclick="useSuggestion('Hãy Tìm Patterns trong bài viết')">🧩 Tìm Patterns</div>
                 <div class="chip" onclick="useSuggestion('Vẽ biểu đồ Python')">🐍 Python Chart</div>
             </div>
             
-            <!-- File Preview -->
             <div id="filePreview" class="hidden text-xs text-blue-400 bg-slate-800 p-1 px-2 rounded mb-1 w-fit flex items-center gap-2">
                 <i class="fas fa-file-alt"></i>
                 <span id="fileName">file.txt</span>
@@ -87,7 +75,6 @@
                 </button>
             </div>
             
-            <!-- RAG Status (Smart Search Loading) -->
             <div id="ragStatus" class="rag-bar-container hidden">
                 <div class="flex justify-between items-center mb-1">
                     <div class="flex items-center gap-2">
@@ -101,13 +88,11 @@
                 </div>
             </div>
             
-            <!-- Typing Indicator -->
             <div id="typingIndicator" class="text-[10px] text-purple-400 mb-1 hidden pl-2">
                 <i class="fas fa-bolt"></i>
                 <span id="typingText">AI đang suy nghĩ...</span>
             </div>
             
-            <!-- Input Wrapper -->
             <div class="input-wrapper">
                 <input type="file" id="fileInput" hidden multiple accept="image/*, .pdf, .txt, .md, .js, .py, .html, .css, .json, .csv" onchange="handleFileSelect(this)">
                 
@@ -128,25 +113,21 @@
         </div>
     </div>
     
-    <!-- Settings Modal (Cleaned) -->
     <div id="settingsModal" class="modal-overlay">
         <div class="modal-content">
             <h2 class="text-lg font-bold text-white mb-4">⚙️ Cấu Hình (Free Core)</h2>
             
-            <!-- Endpoint URL -->
             <div class="mb-4">
                 <label class="text-xs text-blue-400 font-bold block mb-1">ENDPOINT URL (Tùy chọn)</label>
                 <input type="text" id="customUrlInput" class="setting-input mb-1" placeholder="Mặc định: OpenRouter">
                 <div class="text-[10px] text-slate-500">Để trống sẽ dùng Openrouter. Nhập URL nếu dùng Local AI.</div>
             </div>
             
-            <!-- API Key -->
             <div class="mb-4">
                 <label class="text-xs text-slate-400 font-bold block mb-1">API KEY</label>
                 <input type="password" id="apiKeyInput" class="setting-input" placeholder="sk-...">
             </div>
             
-            <!-- Temperature Setting -->
             <div class="mb-4 mt-4">
                 <div class="flex justify-between items-center mb-1">
                     <label class="text-xs text-green-400 font-bold">TEMPERATURE</label>
@@ -156,8 +137,17 @@
                        min="0" max="2" step="0.1" value="0.7" 
                        oninput="document.getElementById('tempDisplay').innerText = this.value">
             </div>
+
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-1">
+                    <label class="text-xs text-pink-400 font-bold">TOP P (Độ đa dạng)</label>
+                    <span id="topPDisplay" class="text-xs text-white font-mono bg-slate-700 px-2 rounded">1.0</span>
+                </div>
+                <input type="range" id="topPInput" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer" 
+                       min="0.1" max="1" step="0.1" value="1.0" 
+                       oninput="document.getElementById('topPDisplay').innerText = this.value">
+            </div>
             
-            <!-- Squad Models -->
             <div class="mb-4">
                 <label class="text-xs text-purple-400 font-bold block mb-1">MODELS LIST</label>
                 <div id="modelList" class="model-list-container"></div>
@@ -183,13 +173,11 @@
                 </div>
             </div>
             
-            <!-- System Prompt -->
             <div class="mb-4">
                 <label class="text-xs text-slate-400 font-bold block mb-1">SYSTEM PROMPT</label>
                 <textarea id="systemPromptInput" class="setting-input h-24"></textarea>
             </div>
             
-            <!-- AI Vision Settings -->
             <div class="mb-4 border-t border-slate-700 pt-4">
                 <label class="text-xs text-yellow-400 font-bold block mb-2">👁️ AI VISION (Xử lý ảnh)</label>
                 <div class="flex items-center justify-between mb-2">
@@ -201,7 +189,6 @@
                 <input type="text" id="visionModelInput" class="setting-input" placeholder="Model Vision (VD: google/gemini-2.0-flash-exp:free)">
             </div>
             
-            <!-- Action Buttons -->
             <div class="flex gap-2 mt-4">
                 <button onclick="closeSettings()" class="w-1/3 py-2 rounded bg-slate-700 text-white hover:bg-slate-600">Đóng</button>
                 <button onclick="saveSettings()" class="w-2/3 py-2 rounded bg-blue-600 text-white font-bold hover:bg-blue-500">Lưu & Áp Dụng ✅</button>
@@ -209,7 +196,6 @@
         </div>
     </div>
     
-    <!-- History Panel -->
     <div id="historyPanel" class="fixed top-0 left-0 h-full w-64 bg-slate-900 border-r border-slate-700 transform -translate-x-full transition-transform duration-300 z-[60] flex flex-col shadow-2xl">
         <div class="p-3 border-b border-slate-700 flex justify-between items-center bg-slate-800">
             <span class="text-sm font-bold text-white">
@@ -229,13 +215,10 @@
         </div>
     </div>
     
-    <!-- History Panel Active State Style -->
     <style>
         #historyPanel.active { transform: translateX(0); }
     </style>
     
-    <!-- Main Script -->
     <script src="script.js"></script>
 </body>
 </html>
-
