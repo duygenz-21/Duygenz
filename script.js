@@ -919,7 +919,10 @@ function openSettings() {
     document.getElementById('customUrlInput').value = config.customUrl;
     document.getElementById('systemPromptInput').value = config.systemPrompt;
     document.getElementById('tempInput').value = config.temperature; 
-    document.getElementById('visionModelInput').value = config.visionModel;
+
+document.getElementById('topPInput').value = config.topP;
+    
+document.getElementById('visionModelInput').value = config.visionModel;
     renderModelList();
     if(settingsModal) settingsModal.classList.add('active');
 }
@@ -950,13 +953,16 @@ function saveSettings() {
     config.customUrl = document.getElementById('customUrlInput').value.trim();
     config.systemPrompt = document.getElementById('systemPromptInput').value.trim();
     config.temperature = parseFloat(document.getElementById('tempInput').value);
+    config.topP = parseFloat(document.getElementById('topPInput').value);
     config.visionModel = document.getElementById('visionModelInput').value.trim();
     
     localStorage.setItem('chat_api_key', config.apiKey);
     localStorage.setItem('chat_custom_url', config.customUrl);         
     localStorage.setItem('chat_models_list', JSON.stringify(config.models));
     localStorage.setItem('chat_temperature', config.temperature);
-    localStorage.setItem('chat_use_vision', config.useVision);
+
+localStorage.setItem('chat_top_p', config.topP);
+        localStorage.setItem('chat_use_vision', config.useVision);
     localStorage.setItem('chat_vision_model', config.visionModel);
  
     chatHistory[0].content = config.systemPrompt;
@@ -994,4 +1000,3 @@ function setGeneratingState(isGen) {
 
 settingsModal.addEventListener('click', (e) => { if(e.target===settingsModal) closeSettings(); });
 window.onload = initChat;
-
