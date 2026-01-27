@@ -998,5 +998,119 @@ function setGeneratingState(isGen) {
     userInput.disabled = isGen;
 }
 
+/**
+ * ==========================================================================================
+ * 10. DRAW.IO INTEGRATION & SIMULATION
+ * ==========================================================================================
+ */
+let drawioWindow = null;
+let currentDiagramXML = "";
+
+function toggleDrawIO() {
+    const modal = document.getElementById('drawioModal');
+    modal.classList.toggle('hidden');
+    // Khởi tạo kết nối nếu chưa có
+    if (!modal.classList.contains('hidden') && !drawioWindow) {
+        const iframe = document.getElementById('drawioFrame');
+        drawioWindow = iframe.contentWindow;
+        // Lắng nghe sự kiện lưu/xuất từ Draw.io
+        window.addEventListener('message', handleDrawIOMessage);
+    }
+}
+
+function handleDrawIOMessage(event) {
+    if (!event.data || event.data.length === 0) return;
+    const msg = JSON.parse(event.data);
+    
+    // Khi nhận lệnh 'save' hoặc auto-save từ iframe
+    if (msg.event === 'save' || msg.event === 'export') {
+        currentDiagramXML = msg.xml; // Lưu XML hiện tại để gửi cho AI
+        console.log("Diagram captured for AI!");
+    }
+}
+
+// Hàm gửi lệnh lấy XML từ iframe (Trigger trước khi hỏi AI)
+function requestDiagramExport(callback) {
+    const iframe = document.getElementById('drawioFrame');
+    // Gửi lệnh yêu cầu export XML
+    iframe.contentWindow.postMessage(JSON.stringify({
+        action: 'export', format: 'xmlsvg'
+    }), '*');
+    
+    // Đợi message trả về (xử lý đơn giản qua biến toàn cục hoặc promise)
+    // Ở đây ta giả định người dùng đã thao tác hoặc auto-save cập nhật currentDiagramXML
+    setTimeout(callback, 500); 
+}
+
+// 1. CHỨC NĂNG HỎI AI VỀ BIỂU ĐỒ
+async function askAIAboutDiagram() {
+    requestDiagramExport(async () => {
+        if (!currentDiagramXML) return alert("Hãy vẽ gì đó trước!");
+        
+        const question = prompt("Bạn muốn hỏi gì về biểu đồ này?");
+        if (!question) return;
+
+        // Thu nhỏ modal để xem chat
+        toggleDrawIO(); 
+        
+        const promptText = `
+        Tôi có một cấu trúc biểu đồ (dạng XML/Logic) như sau:
+        \`\`\`xml
+        ${currentDiagramXML}
+        \`\`\`
+        
+        USER QUESTION: "${question}"
+        
+        YÊU CẦU: Hãy phân tích logic của biểu đồ trên và trả lời câu hỏi.`;
+        
+        [span_3](start_span)// Gọi hàm gửi tin nhắn có sẵn trong code cũ[span_3](end_span)
+        userInput.value = "Đang phân tích biểu đồ...";
+        chatHistory.push({ role: "user", content: promptText });
+        await runStream(config.models[0], chatHistory, createResponseGroup());
+    });
+}
+
+// 2. CHỨC NĂNG CHẠY GIẢ LẬP (SIMULATION)
+async function runSimulation() {
+    const simVar = document.getElementById('simVariableInput').value;
+    if (!simVar) return alert("Vui lòng nhập điều kiện giả lập (VD: x = 50)");
+
+    requestDiagramExport(async () => {
+        if (!currentDiagramXML) return alert("Biểu đồ trống!");
+
+        // Ẩn modal để hiện kết quả
+        toggleDrawIO();
+        
+        // Tạo Prompt yêu cầu AI viết code Python để mô phỏng logic
+        const promptText = `
+        CONTEXT: Người dùng cung cấp một Flowchart dưới dạng XML.
+        DIAGRAM XML:
+        ${currentDiagramXML}
+        
+        SIMULATION REQUEST: 
+        Người dùng muốn chạy thử nghiệm tình huống: "${simVar}" mà KHÔNG thay đổi biểu đồ gốc.
+        
+        TASK:
+        1. Phân tích logic luồng đi (Decision nodes, Process nodes) từ XML.
+        2. Viết một đoạn code Python mô phỏng lại logic đó.
+        3. Chạy biến "${simVar}" vào logic đó và in ra kết quả cuối cùng.
+        4. Giải thích ngắn gọn đường đi (Trace) của dữ liệu.
+        
+        Hãy trả về format:
+        \`\`\`python
+        # Code mô phỏng
+        \`\`\`
+        Và lời giải thích.
+        `;
+
+        chatHistory.push({ role: "user", content: promptText });
+        // Gọi AI chạy bình thường, AI sẽ trả về code Python và Text giải thích
+        await runStream(config.models[0], chatHistory, createResponseGroup());
+    });
+}
+
+
 settingsModal.addEventListener('click', (e) => { if(e.target===settingsModal) closeSettings(); });
 window.onload = initChat;
+
+
