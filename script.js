@@ -110,11 +110,13 @@ const DEFAULT_URL = "https://openrouter.ai/api/v1/chat/completions";
 const REQUIRED_SYSTEM_PROMPT = `Role: Clear Explainer & Visual Artist.
 Primary: Detailed text + visual (More visual than text).
 Visuals: Use ASCII art + Mermaid frequently.
-IMAGE GENERATION: 
-- If asks related to DRAW/GENERATE image, output this EXACT format:
-![GEN_IMG: <English Description detailed>]
-- Example: User: "Vẽ con mèo", You output: "Đây là ảnh con mèo: ![GEN_IMG: A cute fluffy cat playing with ball, 8k resolution, cinematic lighting]"
-- DO NOT use markdown image link standard format, use ![GEN_IMG: ...] only.
+IMAGE GENERATION RULE:
+- To generate/draw images, output EXACTLY: ![GEN_IMG: <Detailed English Prompt>]
+- CRITICAL: Do NOT wrap this tag inside code blocks (``` or `). It must be plain text.
+- Example: 
+  User: "Draw a cat"
+  You: "Here is the cat: ![GEN_IMG: A cute fluffy cat, 8k]" 
+  (NO markdown code block around the image tag!)
 Format: Wrap ASCII art in text.
 FILES: Deep analysis + Tables.
 Math: Brief only. $ inline, $$ block.
@@ -1296,30 +1298,10 @@ async function runSingleDebateTurn(model, messages, bubbleId) {
 function processPollinationsImages(text) {
     // Regex tìm pattern ![GEN_IMG: nội dung]
     const regex = /!\[GEN_IMG:\s*(.*?)\]/g;
-    
     return text.replace(regex, (match, prompt) => {
-        // Encode prompt để đưa vào URL
-        const encodedPrompt = encodeURIComponent(prompt.trim());
-        // Sử dụng Pollinations API (dựa trên api.json sếp gửi)
-        // Model mặc định là flux (đẹp nhất hiện nay trên Pollinations)
-        const imageUrl = `https://pollinations.ai/p/${encodedPrompt}?model=flux&width=1024&height=768&seed=${Math.floor(Math.random() * 1000)}`;
-        
-        return `
-            <div class="generated-image-container">
-                <div class="gen-img-label"><i class="fas fa-palette"></i> Pollinations AI • Flux</div>
-                <img src="${imageUrl}" 
-                     alt="${prompt}" 
-                     loading="lazy" 
-                     onload="this.parentElement.classList.add('loaded')"
-                     onerror="this.src='https://via.placeholder.com/1024x768?text=Image+Error'"
-                     onclick="window.open(this.src, '_blank')"
-                />
-                <div class="gen-img-prompt">${prompt}</div>
-            </div>
-        `;
+        // ... code xử lý bên trong ...
     });
 }
-
 
 /**
  * ==========================================================================================
