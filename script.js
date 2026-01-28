@@ -105,16 +105,19 @@ let pyodideReady = false;
 let pyodideObj = null;
 
 // Chat Config
-const DEFAULT_URL = "Role: Clear Explainer & Visualizer.
+const DEFAULT_URL = "https://openrouter.ai/api/v1/chat/completions";
+const REQUIRED_SYSTEM_PROMPT = `Role: Clear Explainer & Visual Artist.
 Primary: Detailed text + visual (More visual than text).
-Visuals: 
-1. Use ASCII art + Mermaid for logic/charts.
-2. TO GENERATE IMAGES: Use strictly this format: ![IMAGE: description of the image]
-   (Example: ![IMAGE: a futuristic city with neon lights])
+Visuals: Use ASCII art + Mermaid frequently.
+IMAGE GENERATION: 
+- If asks related to DRAW/GENERATE image, output this EXACT format:
+![GEN_IMG: <English Description detailed>]
+- Example: User: "Vẽ con mèo", You output: "Đây là ảnh con mèo: ![GEN_IMG: A cute fluffy cat playing with ball, 8k resolution, cinematic lighting]"
+- DO NOT use markdown image link standard format, use ![GEN_IMG: ...] only.
 Format: Wrap ASCII art in text.
 FILES: Deep analysis + Tables.
-Math: Brief only. $ inline, $$ block.   
-STYLE: Combine text with ASCII art or Mermaid and images.`;
+Math: Brief only. $ inline, $$ block.
+STYLE: Combine text with ASCII art, Mermaid and Images.`;
 
 const WELCOME_HTML = `
     <div class="ai-response-group">
@@ -875,36 +878,17 @@ function readFileAsText(file) {
  * ==========================================================================================
  */
 
-function renderContentToElement(elementId, text) {
+// Thay thế hàm function renderContentToElement(elementId, text) {
     if (!elementId) return;
     const el = document.getElementById(elementId);
     if (!el) return;
 
-    // --- [MỚI] TÍCH HỢP POLLINATIONS AI (Xử lý tag ![IMAGE: ...]) ---
-    // Regex tìm chuỗi ![IMAGE: ...]
-    const imageRegex = /!\[IMAGE:\s*(.*?)\]/g;
-    
-    // Hàm thay thế: Biến tag thành thẻ <img> xịn
-    text = text.replace(imageRegex, (match, prompt) => {
-        // 1. Ép style Cyberpunk vào prompt để ảnh luôn đẹp
-        const enhancedPrompt = encodeURIComponent(prompt + ", cyberpunk style, neon lighting, cinematic lighting, high detailed, 8k");
-        
-        // 2. Tạo URL Pollinations (Flux model, No Logo)
-        const imageUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=600&model=flux&nologo=true&enhance=true`;
-        
-        // 3. Trả về HTML hiển thị ảnh
-        return `
-        <div class="generated-image-container">
-            <img src="${imageUrl}" alt="${prompt}" loading="lazy" onerror="this.src='https://placehold.co/600x400/1e293b/FFF?text=Image+Error'">
-            <div class="image-caption">
-                <span><i class="fas fa-magic text-yellow-400"></i> AI Generated: ${prompt}</span>
-                <a href="${imageUrl}" target="_blank" class="text-blue-400 hover:text-white"><i class="fas fa-external-link-alt"></i></a>
-            </div>
-        </div>`;
-    });
+    // [MỚI] 0. Xử lý ảnh Pollinations trước khi đưa vào Markdown
+    // Lý do: Để tránh Marked.js hiểu nhầm thành thẻ img lỗi
+    let processedText = processPollinationsImages(text);
 
     // 1. Render Markdown cơ bản
-    el.innerHTML = marked.parse(text);
+    el.innerHTML = marked.parse(processedText);
 
     // 2. Render Toán học (Katex)
     try {
@@ -1308,6 +1292,34 @@ async function runSingleDebateTurn(model, messages, bubbleId) {
         throw e;
     }
 }
+
+function processPollinationsImages(text) {
+    // Regex tìm pattern ![GEN_IMG: nội dung]
+    const regex = /!\[GEN_IMG:\s*(.*?)\]/g;
+    
+    return text.replace(regex, (match, prompt) => {
+        // Encode prompt để đưa vào URL
+        const encodedPrompt = encodeURIComponent(prompt.trim());
+        // Sử dụng Pollinations API (dựa trên api.json sếp gửi)
+        // Model mặc định là flux (đẹp nhất hiện nay trên Pollinations)
+        const imageUrl = `https://pollinations.ai/p/${encodedPrompt}?model=flux&width=1024&height=768&seed=${Math.floor(Math.random() * 1000)}`;
+        
+        return `
+            <div class="generated-image-container">
+                <div class="gen-img-label"><i class="fas fa-palette"></i> Pollinations AI • Flux</div>
+                <img src="${imageUrl}" 
+                     alt="${prompt}" 
+                     loading="lazy" 
+                     onload="this.parentElement.classList.add('loaded')"
+                     onerror="this.src='https://via.placeholder.com/1024x768?text=Image+Error'"
+                     onclick="window.open(this.src, '_blank')"
+                />
+                <div class="gen-img-prompt">${prompt}</div>
+            </div>
+        `;
+    });
+}
+
 
 /**
  * ==========================================================================================
