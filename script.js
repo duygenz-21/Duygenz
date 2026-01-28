@@ -873,31 +873,73 @@ function readFileAsText(file) {
  * ==========================================================================================
  */
 
+// Thay thế hàm renderContentToElement cũ bằng hàm này
 function renderContentToElement(elementId, text) {
     if (!elementId) return;
     const el = document.getElementById(elementId);
     if (!el) return;
 
-    const container = messagesArea;
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    // 1. Render Markdown cơ bản
+    el.innerHTML = marked.parse(text);
 
-    const htmlContent = marked.parse(text);
-    el.innerHTML = htmlContent;
-
+    // 2. Render Toán học (Katex)
     try {
         renderMathInElement(el, {
-            delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}],
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ],
             throwOnError: false
         });
     } catch(e) {}
 
-    if (isNearBottom) {
-        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    // 3. Highlight Code (Python, JS...)
+    if (window.hljs) {
+        el.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightElement(block);
+        });
+    }
+
+    // 4. [QUAN TRỌNG] Xử lý Mermaid (Mindmap)
+    // Tìm các khối code có ngôn ngữ là 'mermaid' và vẽ nó
+    if (window.mermaid) {
+        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+        
+        const mermaidBlocks = el.querySelectorAll('pre code.language-mermaid');
+        mermaidBlocks.forEach((block, index) => {
+            const graphDefinition = block.innerText; // Lấy nội dung code
+            const uniqueId = `mermaid-${Date.now()}-${index}`; // Tạo ID riêng
+            
+            // Tạo thẻ div thay thế cho thẻ pre cũ
+            const div = document.createElement('div');
+            div.className = "mermaid-chart flex justify-center bg-slate-800 p-4 rounded";
+            div.id = uniqueId;
+            div.innerHTML = graphDefinition; // Gán tạm text vào
+            
+            // Thay thế khối code cũ bằng khối div mới
+            block.parentElement.replaceWith(div);
+            
+            // Gọi thư viện vẽ
+            try {
+                mermaid.run({ nodes: [div] });
+            } catch (err) {
+                console.warn("Mermaid error:", err);
+                div.innerHTML = `<span class="text-red-400">Lỗi vẽ biểu đồ (Cú pháp sai)</span>`;
+            }
+        });
+    }
+
+    // 5. Auto Scroll xuống dưới nếu đang ở gần đáy
+    const container = document.getElementById('messagesArea'); // Hoặc container chứa chat
+    if (container) {
+         const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+         if (isNearBottom) {
+             container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+         }
     }
     
-    const images = el.querySelectorAll('img');
-    images.forEach(img => img.style.maxWidth = '100%');
-    attachRunButtons();
+    // Gắn lại nút Run Code cho Python (nếu có dùng)
+    if(typeof attachRunButtons === 'function') attachRunButtons();
 }
 
 function appendUserMessage(content, displayContent) {
