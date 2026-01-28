@@ -17,7 +17,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 
 <body>
@@ -109,7 +108,8 @@
             </div>
             
             <!-- Input Wrapper -->
-            <div class="input-wrapper">               
+            <div class="input-wrapper">
+                <div class="input-wrapper">               
                 <div class="structure-select-wrapper" style="margin-right: 5px; display: flex; align-items: center;">
     <select id="structureSelector" class="bg-slate-800 text-slate-200 text-[10px] rounded border border-slate-600 p-1 focus:border-yellow-400 outline-none" style="height:38px; max-width: 100px;">
         <option value="auto">🤖 Auto</option>
@@ -142,11 +142,9 @@
     </div>
     
     <!-- Settings Modal -->
-<div id="settingsModal" class="modal-overlay">
-    <div class="modal-content">
-        <h2 class="text-lg font-bold text-white mb-4">⚙️ Cấu Hình Hệ Thống</h2>
-        
-        <div class="space-y-4">
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-lg font-bold text-white mb-4">⚙️ Cấu Hình Hệ Thống</h2>
             
             <!-- Endpoint URL -->
             <div class="mb-4">
@@ -269,7 +267,7 @@
     </div>
     
     <!-- History Panel -->
-    <div id="historyPanel" class="fixed top-0 left-0 h-full w-64 bg-slate-900 border-r border-slate-700 transform -translate-x-full transition-transform duration-300 z-[90] flex flex-col shadow-2xl">
+    <div id="historyPanel" class="fixed top-0 left-0 h-full w-64 bg-slate-900 border-r border-slate-700 transform -translate-x-full transition-transform duration-300 z-[60] flex flex-col shadow-2xl">
         <div class="p-3 border-b border-slate-700 flex justify-between items-center bg-slate-800">
             <span class="text-sm font-bold text-white">
                 <i class="fas fa-clock text-green-400"></i> Lịch sử
@@ -287,6 +285,11 @@
             </button>
         </div>
     </div>
+    
+    <!-- History Panel Active State Style -->
+    <style>
+        #historyPanel.active { transform: translateX(0); }
+    </style>
     
     <!-- Main Script -->
     <script src="script.js"></script>
