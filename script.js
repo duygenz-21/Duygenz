@@ -1,11 +1,11 @@
- /* 1. CONFIGURATION & DATABASE SETUP (MUST BE FIRST)
- */
+// Thêm dòng này lên đầu file script.js
+import { SECRET_CONFIG } from './config.js';
 
 const LICENSE_CONFIG = {
-    FREE_CHAT_LIMIT: 5,          // 5 lượt chat thường miễn phí
-    FREE_FEATURE_LIMIT: 2,       // 2 lượt cho mỗi tính năng VIP
-    SUPABASE_URL: 'https://uqchbponkvxkbdkpkgub.supabase.co', 
-    SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxY2hicG9ua3Z4a2Jka3BrZ3ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIxMDYsImV4cCI6MjA4NDgzODEwNn0.9xkQlWLymaxd3pndmVUr5TGWdJYwT7lIXM993QKtF3Q'
+    FREE_CHAT_LIMIT: 5,
+    FREE_FEATURE_LIMIT: 2,
+    SUPABASE_URL: SECRET_CONFIG.SUPABASE_URL, 
+    SUPABASE_KEY: SECRET_CONFIG.SUPABASE_KEY
 };
 
 const DB_CONFIG = {
