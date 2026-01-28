@@ -48,7 +48,8 @@ async function dbPut(storeName, key, value) {
 async function dbGet(storeName, key) {
     const db = await openDB();
     return new Promise((resolve) => {
-        const tx = db.transaction(storeName, 'readonly');
+        const tx =
+        db.transaction(storeName, 'readonly');
         const req = tx.objectStore(storeName).get(key);
         req.onsuccess = () => resolve(req.result);
     });
@@ -91,7 +92,8 @@ const RESOURCES = {
     tesseract: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
     pyodide: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js',
     pdfjs: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-    pdfWorker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+    pdfWorker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+    mermaid: 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js' 
 };
 
 let activeWorkers = { ocr: null, ocrTimer: null };
@@ -907,10 +909,19 @@ function createAiCard(groupElement, modelName) {
     const id = 'bubble-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     const card = document.createElement('div');
     card.className = 'ai-card';
+    
+    // [EDIT] Đã thêm nút Freeplane (.mm) vào header bên phải
     card.innerHTML = `
-        <div class="ai-header">
-            <span class="ai-model-name"><i class="fas fa-robot"></i> ${modelName}</span>
-            <i class="fas fa-circle text-[8px] text-green-500 animate-pulse"></i>
+        <div class="ai-header flex justify-between items-center">
+            <div>
+                <span class="ai-model-name"><i class="fas fa-robot"></i> ${modelName}</span>
+                <i class="fas fa-circle text-[8px] text-green-500 animate-pulse"></i>
+            </div>
+            <div class="flex gap-2">
+                 <button onclick="exportToFreeplane('${id}')" class="text-[10px] text-slate-400 hover:text-yellow-400 transition-colors" title="Xuất file Freeplane (.mm)">
+                    <i class="fas fa-project-diagram"></i> .mm
+                </button>
+            </div>
         </div>
         <div class="ai-bubble" id="${id}">...</div>
     `;
@@ -1048,9 +1059,42 @@ async function sendMessage() {
         }
     }
     
+        // --- [NEW] LOGIC XỬ LÝ CẤU TRÚC (Mindmap/Chart) ---
+    const structureSelect = document.getElementById('structureSelector');
+    const selectedStructure = structureSelect ? structureSelect.value : 'auto';
+    let structureInstruction = "";
+
+    if (selectedStructure !== 'auto') {
+        if (selectedStructure === 'freeplane') {
+             structureInstruction = `
+             \n[SYSTEM: FORMAT REQUIREMENTS]
+             User wants to export this to Freeplane/Mindmanager.
+             1. Use strict Markdown Headings (#, ##, ###) for hierarchy.
+             2. Use Bullet points (-) for leaf nodes.
+             3. Keep content concise and structured.`;
+        } else {
+            structureInstruction = `
+            \n[SYSTEM: VISUALIZATION REQUIRED]
+            User explicitly requests a **${selectedStructure.toUpperCase()}** using Mermaid.js.
+            1. Output a SINGLE valid Mermaid code block: \`\`\`mermaid ... \`\`\`
+            2. Do NOT explain the syntax, just draw it.
+            
+            Mapping:
+            - "mindmap" -> mermaid mindmap
+            - "flowchart" -> mermaid graph TD
+            - "timeline" -> mermaid timeline
+            - "fishbone" -> mermaid mindmap (spine structure)
+            - "matrix" -> mermaid quadrantChart
+            - "org" -> mermaid graph TD (subgraphs)
+            `;
+        }
+    }
+
+    // [EDIT] Ghép vào fullPrompt
     let fullPrompt = text;
-    if (finalContext) fullPrompt = `=== CONTEXT ===\n${finalContext}\n=== END ===\n\nUSER: ${text}`;
- 
+    if (finalContext) fullPrompt = `=== CONTEXT ===\n${finalContext}\n=== END ===\n\nUSER: ${text} ${structureInstruction}`;
+    else fullPrompt = `${text} ${structureInstruction}`;  
+    
     appendUserMessage(text, displayHtml);
     chatHistory.push({ role: "user", content: fullPrompt });
     saveSmartState();
@@ -1117,8 +1161,16 @@ async function runStream(model, messages, groupElement, specificElementId = null
             }
         }
     
-        if (!config.isSquadMode || model === config.models[0]) {
+                if (!config.isSquadMode || model === config.models[0]) {
             chatHistory.push({ role: "assistant", content: fullText });
+            
+            // [NEW] Kích hoạt vẽ biểu đồ ngay sau khi AI trả lời xong
+            setTimeout(() => {
+                // Kiểm tra xem hàm này đã được định nghĩa chưa (phòng hờ)
+                if (typeof renderMermaidDiagrams === 'function') {
+                    renderMermaidDiagrams(bubbleId);
+                }
+            }, 100);
         }
     
     } catch (e) {
@@ -1850,3 +1902,114 @@ function setGeneratingState(isGen) {
 // Event Listeners
 settingsModal.addEventListener('click', (e) => { if(e.target===settingsModal) closeSettings(); });
 window.onload = initChat;
+/**
+ * ==========================================================================================
+ * [NEW] VISUAL THINKING INTEGRATION (FREEPLANE & MERMAID)
+ * ==========================================================================================
+ */
+
+// --- 1. FREEPLANE EXPORT LOGIC ---
+function generateFreeplaneXML(content) {
+    const lines = content.split('\n');
+    let xml = '<map version="freeplane 1.9.0">\n';
+    xml += `<node TEXT="AI Thinking Session" FOLDED="false" ID="ID_${Date.now()}">\n`;
+    
+    let currentLevel = 0;
+    let stack = [0]; 
+
+    lines.forEach((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+
+        let level = 0;
+        let text = "";
+
+        // Tự động nhận diện cấu trúc Markdown
+        if (trimmed.startsWith('#')) {
+            const match = trimmed.match(/^(#+)\s+(.*)/);
+            if (match) {
+                level = match[1].length;
+                text = match[2];
+            }
+        } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+            level = 6; // Coi bullet point là level con sâu hơn
+            text = trimmed.substring(2);
+        } else {
+            return; // Bỏ qua text thường để cây gọn
+        }
+
+        text = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        const nodeId = `ID_${Date.now()}_${index}`;
+
+        while (stack.length > 1 && stack[stack.length - 1] >= level) {
+            xml += '</node>\n';
+            stack.pop();
+        }
+
+        xml += `<node TEXT="${text}" ID="${nodeId}">\n`;
+        stack.push(level);
+        currentLevel = level;
+    });
+
+    while (stack.length > 1) {
+        xml += '</node>\n';
+        stack.pop();
+    }
+    xml += '</node>\n</map>';
+    return xml;
+}
+
+function exportToFreeplane(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const content = el.innerText;
+    
+    if (confirm("Sếp muốn xuất nội dung này ra file Mindmap (.mm) cho Freeplane không?")) {
+        const xmlContent = generateFreeplaneXML(content);
+        const blob = new Blob([xmlContent], { type: 'application/x-freeplane' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Mindmap_${Date.now()}.mm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+}
+
+// --- 2. MERMAID RENDER LOGIC ---
+async function renderMermaidDiagrams(containerId) {
+    if (!window.mermaid) return;
+    mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // Tìm các khối code mermaid để vẽ
+    const codeBlocks = container.querySelectorAll('pre code.language-mermaid, .mermaid');
+    
+    for (let i = 0; i < codeBlocks.length; i++) {
+        const block = codeBlocks[i];
+        const content = block.textContent;
+        const id = `mermaid-${Date.now()}-${i}`;
+        
+        const div = document.createElement('div');
+        div.id = id;
+        div.className = 'mermaid-diagram bg-slate-900/50 p-4 rounded border border-slate-700 mt-2 mb-2 overflow-x-auto flex justify-center';
+        div.innerHTML = `<i class="fas fa-spinner fa-spin text-yellow-400"></i> Rendering Chart...`;
+        
+        if (block.tagName === 'CODE') {
+            block.parentElement.replaceWith(div);
+        } else {
+            block.replaceWith(div);
+        }
+
+        try {
+            const { svg } = await mermaid.render(id + '-svg', content);
+            div.innerHTML = svg;
+        } catch (e) {
+            div.innerHTML = `<div class="text-red-400 text-xs">Lỗi vẽ: ${e.message}<br><pre>${content}</pre></div>`;
+        }
+    }
+}

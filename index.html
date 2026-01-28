@@ -17,6 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 
 <body>
@@ -108,7 +109,19 @@
             </div>
             
             <!-- Input Wrapper -->
-            <div class="input-wrapper">
+            <div class="input-wrapper">               
+                <div class="structure-select-wrapper" style="margin-right: 5px; display: flex; align-items: center;">
+    <select id="structureSelector" class="bg-slate-800 text-slate-200 text-[10px] rounded border border-slate-600 p-1 focus:border-yellow-400 outline-none" style="height:38px; max-width: 100px;">
+        <option value="auto">🤖 Auto</option>
+        <option value="mindmap">🧠 Mindmap</option>
+        <option value="freeplane">🗺️ Freeplane (.mm)</option>
+        <option value="flowchart">twisted_rightwards_arrows: Logic Flow</option>
+        <option value="timeline">⏳ Timeline</option>
+        <option value="fishbone">🐟 Fishbone</option>
+        <option value="matrix">⊞ Matrix/Grid</option>
+        <option value="org">🏗️ Org Chart</option>
+    </select>
+</div>
                 <input type="file" id="fileInput" hidden multiple accept="image/*, .pdf, .txt, .md, .js, .py, .html, .css, .json, .csv" onchange="handleFileSelect(this)">
                 
                 <button onclick="document.getElementById('fileInput').click()" class="action-btn" title="Đính kèm file (Ảnh OCR hoặc Text)">
