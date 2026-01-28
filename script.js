@@ -69,6 +69,7 @@ async function dbDelete(storeName, key) {
  */
 
 // User & Session State
+let currentSessionId = null;
 let usageData = {
     freeChatUsed: 0,
     freeDebateUsed: 0,
@@ -878,13 +879,12 @@ function readFileAsText(file) {
  * ==========================================================================================
  */
 
-// Thay thế hàm function renderContentToElement(elementId, text) {
+function renderContentToElement(elementId, text) {  // <-- Phải có dòng này
     if (!elementId) return;
     const el = document.getElementById(elementId);
     if (!el) return;
 
-    // [MỚI] 0. Xử lý ảnh Pollinations trước khi đưa vào Markdown
-    // Lý do: Để tránh Marked.js hiểu nhầm thành thẻ img lỗi
+    // [MỚI] 0. Xử lý ảnh Pollinations
     let processedText = processPollinationsImages(text);
 
     // 1. Render Markdown cơ bản
