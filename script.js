@@ -108,11 +108,11 @@ let pyodideObj = null;
 const DEFAULT_URL = "https://openrouter.ai/api/v1/chat/completions";
 const REQUIRED_SYSTEM_PROMPT =`Role: Clear Explainer.   
 Primary: Detailed text  + visual (More visual than text).                
-Visuals: Use ASCII art frequently.
+Visuals: Use ASCII art + Mermaid frequently.
 Format: Wrap ASCII art in text.         
 FILES: Deep analysis + Tables.  
 Math: Brift only. $ inline, $$ block.   
-STYLE: Combine text with ASCII art.`;
+STYLE: Combine text with ASCII art and Mermaid.`;
 
 const WELCOME_HTML = `
     <div class="ai-response-group">
@@ -199,20 +199,32 @@ async function initChat() {
  * 5. HISTORY & SESSION MANAGEMENT
  * ========================================================================================
  */
-
 async function toggleHistoryPanel() {
     const panel = document.getElementById('historyPanel');
     const listContainer = document.getElementById('historyList');
     
     if (!panel || !listContainer) return console.error("Thiếu ID HTML History!");
 
-    panel.classList.toggle('active'); 
+    // Kiểm tra trạng thái hiện tại dựa trên class
+    const isActive = panel.classList.contains('active');
 
-    if (panel.classList.contains('active')) {
-        listContainer.innerHTML = '<div class="text-center text-slate-500"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+    if (isActive) {
+        // Đang mở -> Đóng lại
+        panel.classList.remove('active');
+        panel.style.transform = 'translateX(-100%)'; // Force style để đảm bảo đóng
+    } else {
+        // Đang đóng -> Mở ra
+        panel.classList.add('active');
+        panel.style.transform = 'translateX(0)'; // Force style để đảm bảo mở
+        
+        // Hiển thị loading trong lúc gọi DB
+        listContainer.innerHTML = '<div class="text-center text-slate-500 mt-4"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>';
+        
+        // Gọi hàm render dữ liệu
         await renderHistoryList(listContainer);
     }
 }
+
 
 async function renderHistoryList(container) {
     const db = await openDB();
@@ -1007,7 +1019,7 @@ async function sendMessage() {
             const directorPrompt = `
             Bạn là một trợ lý AI thông minh (Director).
             Người dùng vừa gửi một hình ảnh kèm câu hỏi: "${text || 'Hãy phân tích ảnh này'}".
-            Nhiệm vụ: Hãy viết một câu lệnh (Prompt) thật cụ thể và trước câu hỏi nhớ thêm "hãy phân tích hình ảnh " để AI bên ngoài trả lời và bạn sưu tập câu trả lời cho khớp với ý cuar người dùng nhé và phải rõ ràng bằng tiếng Anh gửi cho AI Vision để nó trích xuất thông tin cần thiết nhất từ ảnh.
+            Nhiệm vụ: Hãy viết một câu lệnh (Prompt) thật cụ thể và trước câu hỏi nhớ thêm cụm từ "hãy phân tích hình ảnh " để AI bên ngoài trả lời và bạn sưu tập câu trả lời cho khớp với ý của tôi nhé và phải rõ ràng bằng tiếng Anh gửi cho AI Vision để nó trích xuất thông tin cần thiết nhất từ ảnh.
             Chỉ trả về nội dung câu lệnh (Prompt).`;
             
             const visionInstruction = await runSingleDebateTurn(mainModel, [{role: "user", content: directorPrompt}], statusId);
@@ -1046,7 +1058,7 @@ async function sendMessage() {
     // Chat / RAG Mode
     let finalContext = null;
     if (currentFileContent) {
-        if (currentFileContent.length > 2000) {
+        if (currentFileContent.length > 5000) {
             const smartKeywords = await extractSmartKeywords(text, config.models[0]);
             finalContext = await getRelevantContextWithStatus(smartKeywords, currentFileContent);
             displayHtml += `<div class="mt-2 text-[10px] text-blue-400 bg-slate-800/50 p-2 rounded border border-blue-500/30">
@@ -1659,8 +1671,16 @@ async function getRelevantContextWithStatus(keywords, content) {
     ragBar.style.width = '100%';
     ragPercent.innerText = '100%';
     ragText.innerHTML = `<i class="fas fa-check-circle text-green-400"></i> SCAN COMPLETE!`;
-    await new Promise(r => setTimeout(r, 300)); 
     
+    // [FIX 1] Delay 1 chút để user kịp nhìn thấy chữ Complete
+    await new Promise(r => setTimeout(r, 800)); 
+    
+    // [FIX 2] Tự động ẩn thanh trạng thái sau 3 giây
+    setTimeout(() => {
+        const ragContainer = document.getElementById('ragStatus');
+        if (ragContainer) ragContainer.classList.add('hidden');
+    }, 3000); // 3000ms = 3 giây
+
     if (relevantChunks.length === 0) {
         return content.substring(0, 3000) + "\n\n...[Shortened]...";
     }
