@@ -1158,18 +1158,23 @@ async function runStream(model, messages, groupElement, specificElementId = null
             const lines = chunk.split("\n");
             
             for (const line of lines) {
-                if (line.startsWith("data: ") && line !== "data: [DONE]") {
-                    try {
-                        const json = JSON.parse(line.substring(6));
-                        const content = json.choices[0]?.delta?.content || "";
-                        if (content) {
-                            fullText += content;
-                            renderContentToElement(bubbleId, fullText);
-                        }
-                    } catch (e) {}
-                }
+    // Thêm check độ dài để tránh lỗi substring
+    if (line.length < 6) continue; 
+    
+    if (line.startsWith("data: ") && line !== "data: [DONE]") {
+        try {
+            const json = JSON.parse(line.substring(6));
+            const content = json.choices[0]?.delta?.content || "";
+            if (content) {
+                fullText += content;
+                renderContentToElement(bubbleId, fullText);
             }
+        } catch (e) {
+            // ✅ Log lỗi ra console để debug nếu stream bị ngắt
+            console.warn("Lỗi parse chunk:", e, line);
         }
+    }
+}
     
                 if (!config.isSquadMode || model === config.models[0]) {
             chatHistory.push({ role: "assistant", content: fullText });
