@@ -149,12 +149,12 @@ header {
 }
 
 /* --- ✨ NEON CYBERPUNK STYLES (UPGRADE) --- */
-/* --- PYTHON TERMINAL & PLOT STYLES (FIXED) --- */
+/* --- PYTHON TERMINAL & PLOT STYLES --- */
 .code-action-bar {
    display: flex; justify-content: flex-end; gap: 10px;
    background: #1e293b; padding: 5px 10px;
    border-top: 1px solid #334155; border-radius: 0 0 8px 8px;
-   margin-top: -1em; margin-bottom: 1em; 
+   margin-top: -1em; margin-bottom: 1em; /* Dính liền với khung code */
 }
 .run-btn {
    font-size: 12px; font-weight: bold; color: #a5f3fc; cursor: pointer;
@@ -163,63 +163,21 @@ header {
 }
 .run-btn:hover { color: #22d3ee; text-shadow: 0 0 8px #22d3ee; }
 
-/* 🔥 CLASS QUAN TRỌNG NHẤT: KHÓA KHUNG KẾT QUẢ 🔥 */
 .python-output {
-   margin-top: 10px; 
-   padding: 10px; 
-   border-radius: 8px;
-   background: #0f172a; /* Nền tối hơn chút cho nổi bật */
-   border: 1px dashed #334155;
-   font-family: 'JetBrains Mono', monospace; 
-   font-size: 13px; 
-   color: #fff;
-   
-   /* --- CƠ CHẾ KHÓA KHUNG --- */
-   width: 100%;          /* Chiếm 100% chiều rộng cha */
-   max-width: 100%;      /* Không bao giờ được vượt quá cha */
-   box-sizing: border-box; /* Tính cả padding vào kích thước */
-   overflow-x: auto;     /* Nếu nội dung to quá -> hiện thanh cuộn ngang */
-   display: none;        /* Mặc định ẩn */
+   margin-top: 10px; padding: 10px; border-radius: 8px;
+   background: #000; border: 1px dashed #334155;
+   font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #fff;
+   display: none; /* Ẩn khi chưa có kết quả */
 }
-
-.python-output.active { 
-   display: block; 
-   animation: fadeIn 0.3s; 
-}
-
-/* 📊 CỐ ĐỊNH BIỂU ĐỒ (CHART) */
+.python-output.active { display: block; animation: fadeIn 0.3s; }
 .python-output img { 
-   max-width: 100% !important; /* Bắt buộc ảnh co lại vừa khung */
-   height: auto;               /* Giữ đúng tỷ lệ ảnh */
-   display: block; 
-   margin: 10px auto;          /* Căn giữa */
+   max-width: 100%; 
+   height: auto; /* Tự động chỉnh chiều cao theo tỷ lệ */
+   display: block; /* Tránh khoảng trắng thừa ở dưới */
+   margin: 0 auto; /* Căn giữa */
    border-radius: 6px; 
    border: 1px solid #334155; 
-   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-/* 📅 CỐ ĐỊNH BẢNG DỮ LIỆU (DATAFRAME) */
-.python-output table {
-   width: 100%;
-   display: block;        /* Biến bảng thành khối để scroll được */
-   overflow-x: auto;      /* Cuộn ngang nếu nhiều cột */
-   white-space: nowrap;   /* Giữ dữ liệu trên 1 dòng cho đẹp */
-   border-collapse: collapse;
-   margin: 0;
-}
-
-.python-output th, .python-output td {
-   padding: 8px 12px;
-   border: 1px solid #334155;
-   text-align: left;
-}
-
-.python-output th {
-   background: #1e293b;
-   color: #38bdf8;
-   font-weight: bold;
-   position: sticky; /* (Tùy chọn) Giữ tiêu đề khi cuộn */
-   top: 0;
+   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); /* Thêm bóng đổ cho nổi */
 }
 
 /* 1. Headers: Màu chuyển động & Phát sáng */
