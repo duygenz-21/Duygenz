@@ -203,28 +203,26 @@ async function toggleHistoryPanel() {
     const panel = document.getElementById('historyPanel');
     const listContainer = document.getElementById('historyList');
     
-    if (!panel || !listContainer) return console.error("Thiếu ID HTML History!");
+    if (!panel || !listContainer) return;
 
-    // Kiểm tra trạng thái hiện tại dựa trên class
-    const isActive = panel.classList.contains('active');
+    // Kiểm tra xem panel đang hiện hay ẩn dựa trên class của Tailwind
+    // Nếu KHÔNG có class '-translate-x-full' nghĩa là đang hiện -> Cần ẩn đi
+    const isVisible = !panel.classList.contains('-translate-x-full');
 
-    if (isActive) {
-        // Đang mở -> Đóng lại
-        panel.classList.remove('active');
-        panel.style.transform = 'translateX(-100%)'; // Force style để đảm bảo đóng
+    if (isVisible) {
+        // Đang hiện -> Ẩn đi (Đẩy sang trái)
+        panel.classList.add('-translate-x-full');
+        panel.classList.remove('translate-x-0');
     } else {
-        // Đang đóng -> Mở ra
-        panel.classList.add('active');
-        panel.style.transform = 'translateX(0)'; // Force style để đảm bảo mở
+        // Đang ẩn -> Hiện ra (Reset về 0)
+        panel.classList.remove('-translate-x-full');
+        panel.classList.add('translate-x-0');
         
-        // Hiển thị loading trong lúc gọi DB
+        // Load dữ liệu
         listContainer.innerHTML = '<div class="text-center text-slate-500 mt-4"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>';
-        
-        // Gọi hàm render dữ liệu
         await renderHistoryList(listContainer);
     }
 }
-
 
 async function renderHistoryList(container) {
     const db = await openDB();
