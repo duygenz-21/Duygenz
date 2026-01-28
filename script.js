@@ -1978,38 +1978,64 @@ function exportToFreeplane(elementId) {
     }
 }
 
-// --- 2. MERMAID RENDER LOGIC ---
+// --- 2. MERMAID RENDER LOGIC (Đã nâng cấp nút Thu gọn) ---
 async function renderMermaidDiagrams(containerId) {
     if (!window.mermaid) return;
+    // Cấu hình theme tối
     mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
 
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // Tìm các khối code mermaid để vẽ
+    // Tìm các khối code mermaid
     const codeBlocks = container.querySelectorAll('pre code.language-mermaid, .mermaid');
     
     for (let i = 0; i < codeBlocks.length; i++) {
         const block = codeBlocks[i];
         const content = block.textContent;
         const id = `mermaid-${Date.now()}-${i}`;
+        const contentId = id + '-content';
         
-        const div = document.createElement('div');
-        div.id = id;
-        div.className = 'mermaid-diagram bg-slate-900/50 p-4 rounded border border-slate-700 mt-2 mb-2 overflow-x-auto flex justify-center';
-        div.innerHTML = `<i class="fas fa-spinner fa-spin text-yellow-400"></i> Rendering Chart...`;
+        // Tạo khung bao quanh
+        const wrapper = document.createElement('div');
+        wrapper.id = id;
+        wrapper.className = 'mermaid-wrapper mt-2 mb-2 border border-slate-700 rounded bg-slate-900/50';
         
+        // 1. Tạo Header (Nơi chứa nút tắt/mở)
+        const headerHtml = `
+            <div class="flex justify-between items-center bg-slate-800 px-3 py-1 rounded-t cursor-pointer hover:bg-slate-700 transition-colors" 
+                 onclick="document.getElementById('${contentId}').classList.toggle('hidden'); this.querySelector('.toggle-icon').classList.toggle('fa-chevron-down'); this.querySelector('.toggle-icon').classList.toggle('fa-chevron-right');">
+                <span class="text-[10px] font-bold text-blue-400 flex items-center gap-2">
+                    <i class="fas fa-project-diagram"></i> Visual Chart
+                </span>
+                <i class="toggle-icon fas fa-chevron-down text-[10px] text-slate-400"></i>
+            </div>
+        `;
+
+        // 2. Tạo phần nội dung (Mặc định hiển thị loading)
+        const contentHtml = `
+            <div id="${contentId}" class="mermaid-content p-4 overflow-x-auto flex justify-center transition-all">
+                <i class="fas fa-spinner fa-spin text-yellow-400"></i> Rendering...
+            </div>
+        `;
+        
+        wrapper.innerHTML = headerHtml + contentHtml;
+
+        // Thay thế khối code cũ bằng wrapper mới
         if (block.tagName === 'CODE') {
-            block.parentElement.replaceWith(div);
+            block.parentElement.replaceWith(wrapper);
         } else {
-            block.replaceWith(div);
+            block.replaceWith(wrapper);
         }
 
+        // 3. Tiến hành vẽ và nhét vào phần nội dung
         try {
             const { svg } = await mermaid.render(id + '-svg', content);
-            div.innerHTML = svg;
+            const contentDiv = document.getElementById(contentId);
+            if(contentDiv) contentDiv.innerHTML = svg;
         } catch (e) {
-            div.innerHTML = `<div class="text-red-400 text-xs">Lỗi vẽ: ${e.message}<br><pre>${content}</pre></div>`;
+            const contentDiv = document.getElementById(contentId);
+            if(contentDiv) contentDiv.innerHTML = `<div class="text-red-400 text-xs p-2">Lỗi vẽ: ${e.message}</div>`;
         }
     }
 }
