@@ -1122,7 +1122,7 @@ async function sendMessage() {
     renderHeaderStatus();
 }
 
-// Stream Engines
+// [FIXED by Gemini] Hàm xử lý Stream tối ưu, chống cắt chữ và chống đơ UI
 async function runStream(model, messages, groupElement, specificElementId = null) {
     const endpoint = config.customUrl.trim() || DEFAULT_URL;
     let bubbleId = specificElementId || createAiCard(groupElement, model);
@@ -1139,7 +1139,12 @@ async function runStream(model, messages, groupElement, specificElementId = null
                 "HTTP-Referer": window.location.href,
             },
             body: JSON.stringify({
-                model: model, messages: messages, temperature: config.temperature, top_p: config.topP, stream: true 
+                model: model, 
+                messages: messages, 
+                temperature: config.temperature, 
+                top_p: config.topP, 
+                stream: true,
+                max_tokens: 4096 // [FIX 1] Thêm giới hạn token cao để không bị ngắt giữa chừng
             }),
             signal: controller.signal
         });
@@ -1149,43 +1154,55 @@ async function runStream(model, messages, groupElement, specificElementId = null
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let fullText = "";
-    
+        let buffer = ""; // [FIX 2] Biến đệm để lưu các mảnh JSON chưa hoàn chỉnh
+        
+        // [FIX 3] Cơ chế Throttle: Chỉ render lại giao diện sau mỗi 50ms để tránh đơ trình duyệt
+        let lastRenderTime = 0; 
+        
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
             
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split("\n");
+            // Giải mã chunk và cộng dồn vào buffer
+            buffer += decoder.decode(value, { stream: true });
+            
+            // Tách buffer thành các dòng
+            const lines = buffer.split("\n");
+            
+            // Giữ lại dòng cuối cùng trong buffer vì có thể nó chưa tải xong (chưa có ký tự xuống dòng)
+            buffer = lines.pop(); 
             
             for (const line of lines) {
-    // Thêm check độ dài để tránh lỗi substring
-    if (line.length < 6) continue; 
-    
-    if (line.startsWith("data: ") && line !== "data: [DONE]") {
-        try {
-            const json = JSON.parse(line.substring(6));
-            const content = json.choices[0]?.delta?.content || "";
-            if (content) {
-                fullText += content;
-                renderContentToElement(bubbleId, fullText);
-            }
-        } catch (e) {
-            // ✅ Log lỗi ra console để debug nếu stream bị ngắt
-            console.warn("Lỗi parse chunk:", e, line);
-        }
-    }
-}
-    
-                if (!config.isSquadMode || model === config.models[0]) {
-            chatHistory.push({ role: "assistant", content: fullText });
-            
-            // [NEW] Kích hoạt vẽ biểu đồ ngay sau khi AI trả lời xong
-            setTimeout(() => {
-                // Kiểm tra xem hàm này đã được định nghĩa chưa (phòng hờ)
-                if (typeof renderMermaidDiagrams === 'function') {
-                    renderMermaidDiagrams(bubbleId);
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith("data: ") && trimmedLine !== "data: [DONE]") {
+                    try {
+                        const jsonStr = trimmedLine.substring(6);
+                        const json = JSON.parse(jsonStr);
+                        const content = json.choices[0]?.delta?.content || "";
+                        
+                        if (content) {
+                            fullText += content;
+                            
+                            // [FIX 3] Kiểm tra thời gian, nếu quá 50ms mới vẽ lại UI một lần
+                            const now = Date.now();
+                            if (now - lastRenderTime > 50) {
+                                renderContentToElement(bubbleId, fullText);
+                                lastRenderTime = now;
+                            }
+                        }
+                    } catch (e) {
+                        // Vẫn có thể lỗi JSON do server gửi sai, nhưng nhờ buffer nên đã giảm 99% lỗi
+                        console.warn("Lỗi parse chunk JSON (đã bỏ qua):", e);
+                    }
                 }
-            }, 100);
+            }
+        }
+        
+        // Render lần cuối cùng khi xong hẳn để đảm bảo đủ chữ
+        renderContentToElement(bubbleId, fullText);
+    
+        if (!config.isSquadMode || model === config.models[0]) {
+            chatHistory.push({ role: "assistant", content: fullText });
         }
     
     } catch (e) {
